@@ -24,14 +24,14 @@ let minAppVersion = null;
 for (const file of manifests) {
   const m = JSON.parse(readFileSync(file, 'utf8'));
   // Only a manifest of this plugin (the desktop app's repo root has none; never touch another file).
-  if (m.id !== 'margin-reader') continue;
+  if (m.id !== 'readside') continue;
   m.version = version;
   minAppVersion ??= m.minAppVersion;
   writeFileSync(file, `${JSON.stringify(m, null, 2)}\n`);
   console.log(`version-bump: ${file} -> ${version}`);
 }
 if (!minAppVersion) {
-  console.error('version-bump: no margin-reader manifest.json found');
+  console.error('version-bump: no readside manifest.json found');
   process.exit(1);
 }
 

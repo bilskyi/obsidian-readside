@@ -126,7 +126,7 @@ describe('MarginView', () => {
   it('a file that cannot be read shows why instead of the reader', async () => {
     app.vault.adapter.failOn('readBinary', 'Books/Walden.pdf');
     const { view } = await open();
-    await waitFor(() => expect(view.contentEl.textContent).toContain("Margin couldn't open Books/Walden.pdf"));
+    await waitFor(() => expect(view.contentEl.textContent).toContain("Readside couldn't open Books/Walden.pdf"));
   });
 
   it('refreshBook shows the book’s new title after a rename', async () => {
@@ -446,7 +446,7 @@ describe('MarginView: an EPUB (E7)', () => {
     await waitFor(() => expect(view.commands.current).not.toBeNull());
     view.location.current = epubPoint(3, 10, 0.2);
     await act(async () => view.copyPageLink());
-    expect(Notice.messages.at(-1)).toBe('Margin: link to § 3 copied.');
+    expect(Notice.messages.at(-1)).toBe('Readside: link to § 3 copied.');
   });
 });
 

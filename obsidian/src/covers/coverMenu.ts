@@ -62,7 +62,7 @@ export interface CoverMenuBook {
 /** Where the menu opens: at the pointer (right-click) or under the "⋯" button. */
 export type MenuAt = { clientX: number; clientY: number } | { x: number; y: number };
 
-const fail = (what: string) => (e: unknown) => new Notice(`Margin couldn't ${what}: ${e instanceof Error ? e.message : String(e)}`);
+const fail = (what: string) => (e: unknown) => new Notice(`Readside couldn't ${what}: ${e instanceof Error ? e.message : String(e)}`);
 
 /** The card's cover menu: choose from the vault, first page, colour tile, paste, reset. */
 export function showCoverMenu(app: App, covers: CoverManager, current: CoverChoice | null, book: CoverMenuBook, at: MenuAt, opener?: HTMLElement | null): Menu {
@@ -87,7 +87,7 @@ export function showCoverMenu(app: App, covers: CoverManager, current: CoverChoi
         try {
           const image = await clipboardImage();
           if (!image) {
-            new Notice('Margin found no image on the clipboard.');
+            new Notice('Readside found no image on the clipboard.');
             return;
           }
           await covers.paste(book.bookId, image.data, image.ext);

@@ -18,7 +18,7 @@ import type { BookStore, DeepReadonly } from '../store/bookStore';
 import { invalid, MarginError, notFound } from '../store/errors';
 import type { BookFile } from '../store/types';
 
-export const NOT_IN_OBSIDIAN = 'Margin in Obsidian reads PDFs from your vault: open one from the file explorer.';
+export const NOT_IN_OBSIDIAN = 'Readside in Obsidian reads PDFs from your vault: open one from the file explorer.';
 
 export interface VaultBackendDeps {
   readBytes(path: string): Promise<ArrayBuffer>;

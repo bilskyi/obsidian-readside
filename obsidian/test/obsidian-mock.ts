@@ -53,7 +53,7 @@ export class TFolder extends TAbstractFile {
   }
 }
 
-type Op = 'exists' | 'read' | 'readBinary' | 'write' | 'writeBinary' | 'remove' | 'rename' | 'mkdir' | 'list' | 'copy';
+type Op = 'exists' | 'read' | 'readBinary' | 'write' | 'writeBinary' | 'remove' | 'rename' | 'mkdir' | 'list' | 'copy' | 'rmdir';
 interface Failure {
   op: Op;
   match: (path: string) => boolean;
@@ -141,6 +141,26 @@ export class MemoryAdapter {
   async rename(path: string, newPath: string): Promise<void> {
     this.hit('rename', path);
     if (this.files.has(newPath) || this.folders.has(newPath)) throw new Error('Destination file already exists!');
+    if (this.folders.has(path)) {
+      // A folder moves with everything in it, like fs.rename.
+      this.needParent(newPath);
+      const moved = (p: string) => (p === path ? newPath : p.startsWith(`${path}/`) ? newPath + p.slice(path.length) : null);
+      for (const f of [...this.folders]) {
+        const to = moved(f);
+        if (to !== null) {
+          this.folders.delete(f);
+          this.folders.add(to);
+        }
+      }
+      for (const [f, v] of [...this.files]) {
+        const to = moved(f);
+        if (to !== null) {
+          this.files.delete(f);
+          this.files.set(to, v);
+        }
+      }
+      return;
+    }
     const v = this.files.get(path);
     if (v === undefined) throw new Error(`ENOENT: ${path}`);
     this.needParent(newPath);
@@ -163,6 +183,16 @@ export class MemoryAdapter {
   private versions = new Map<string, number>();
   /** Modification times of binary files written through the adapter (others: 0, i.e. old). */
   mtimes = new Map<string, number>();
+  /** Like Obsidian's: removes an empty folder, or with `recursive` everything in it. */
+  async rmdir(path: string, recursive: boolean): Promise<void> {
+    this.hit('rmdir', path);
+    if (!this.folders.has(path)) throw new Error(`ENOENT: ${path}`);
+    const inside = (p: string) => p.startsWith(`${path}/`);
+    if (!recursive && ([...this.files.keys()].some(inside) || [...this.folders].some(inside))) throw new Error(`ENOTEMPTY: ${path}`);
+    for (const f of [...this.files.keys()]) if (inside(f)) this.files.delete(f);
+    for (const f of [...this.folders]) if (inside(f)) this.folders.delete(f);
+    this.folders.delete(path);
+  }
   async mkdir(path: string): Promise<void> {
     this.hit('mkdir', path);
     let p = '';
@@ -184,7 +214,7 @@ export class Vault extends Events {
     this.vaultName = name;
     this.adapter.folders.add('.obsidian');
     this.adapter.folders.add('.obsidian/plugins');
-    this.adapter.folders.add('.obsidian/plugins/margin-reader');
+    this.adapter.folders.add('.obsidian/plugins/readside');
   }
   getName(): string {
     return this.vaultName;

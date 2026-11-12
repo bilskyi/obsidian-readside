@@ -1,14 +1,15 @@
 import { snippetLabelAt, snippetWords } from '../../src/lib/labels';
 import { parseLocation, serializeLocation, spotOf } from '../../src/lib/location';
 import type { Location } from '../../src/lib/types';
+import { PROTOCOL_ACTION } from './identity';
 
 /** encodeURIComponent plus `(` and `)`, so the URL can sit inside a Markdown link. */
 const enc = (s: string) => encodeURIComponent(s).replace(/[()]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 
-/** `obsidian://margin?file=<vault path>&loc=<Location JSON>` (spec §7). */
+/** `obsidian://readside?file=<vault path>&loc=<Location JSON>` (spec §7; older links say `obsidian://margin`). */
 export function buildObsidianUrl(path: string, location: Location | null): string {
   const loc = location ? `&loc=${enc(serializeLocation(location))}` : '';
-  return `obsidian://margin?file=${enc(path)}${loc}`;
+  return `obsidian://${PROTOCOL_ACTION}?file=${enc(path)}${loc}`;
 }
 
 export interface MarginLinkTarget {
@@ -31,7 +32,7 @@ export function linkLabel(location: Location, quote: string | null): string {
 
 const escapeLinkText = (s: string) => s.replace(/[[\]\\]/g, (c) => `\\${c}`);
 
-/** `[p. 42 · “snippet…”](obsidian://margin?…)` */
+/** `[p. 42 · “snippet…”](obsidian://readside?…)` */
 export function markdownLink(path: string, location: Location, quote: string | null): string {
   return `[${escapeLinkText(linkLabel(location, quote))}](${buildObsidianUrl(path, location)})`;
 }

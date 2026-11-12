@@ -152,9 +152,9 @@ describe('the page’s right-click menu in Obsidian', () => {
     expect(writeText).toHaveBeenCalledWith(`> Simplify,\n> simplify.\n\n${markdownLink('Books/Walden.pdf', at, null)}`);
   });
 
-  it('a clipboard failure says so in Margin’s words', async () => {
+  it('a clipboard failure says so in Readside’s words', async () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => Promise.reject(new Error('denied')) }, configurable: true });
-    await expect(copyQuoteWithLink({ path: 'a.pdf' } as TFile, pdfPoint(1, 0), 'q')).rejects.toThrow("Margin couldn't copy the quote: denied");
+    await expect(copyQuoteWithLink({ path: 'a.pdf' } as TFile, pdfPoint(1, 0), 'q')).rejects.toThrow("Readside couldn't copy the quote: denied");
   });
 
   it('showPageMenu tells the reader when Obsidian’s Menu goes, so its selection popover can come back', () => {

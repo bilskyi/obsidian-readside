@@ -5,37 +5,44 @@ vault (`pnpm setup:obsidian-vault`, `pnpm build:obsidian`) first, then a copy of
 experiment in a vault you have no backup of.
 
 > **Before any step in a real vault:** back it up (at least `.obsidian`). Never click **Uninstall** on
-> Margin in Community plugins: it deletes `<vault>/.obsidian/plugins/margin-reader/` with every book's
+> Readside in Community plugins: it deletes `<vault>/.obsidian/plugins/readside/` with every book's
 > highlights and thoughts. Disable it instead, or copy `books/` and `backups/` out first. To update, replace
 > only `main.js`, `styles.css` and `manifest.json`.
 
-Setup: open `obsidian/test-vault`, enable Margin, open `Books/Walden.pdf` with Margin.
+Setup: open `obsidian/test-vault`, enable Readside, open `Books/Walden.pdf` with Readside.
+
+**Coming from Margin** (a vault where the plugin was installed as `margin-reader`):
+
+- [ ] Disable Margin, install Readside beside the old `.obsidian/plugins/margin-reader/` and enable it: one notice "Readside: imported your books and notes from Margin."; the shelf shows every book with its highlights and thoughts; `margin-reader/` is unchanged. Reload: no second notice.
+- [ ] Notebook notes stay in `Margin/` (Settings shows `Margin`); a new highlight rewrites the note there, its links now `obsidian://readside?…`.
+- [ ] An old `obsidian://margin?file=…&loc=…` link in a note still opens the book and jumps; backlink chips count it.
+- [ ] Tabs open before the switch (`margin-reader` view type in workspace.json) come back as books, not empty tabs.
 
 ## Reading basics
-- [ ] Ribbon book icon opens the picker; choosing Walden opens it in a Margin tab. Page renders sharp, text layer selectable.
-- [ ] Explorer right-click on a PDF: "Open in Margin". A `[[Walden.pdf]]` link in a note, right-click: the same item.
+- [ ] Ribbon book icon opens the picker; choosing Walden opens it in a Readside tab. Page renders sharp, text layer selectable.
+- [ ] Explorer right-click on a PDF: "Open in Readside". A `[[Walden.pdf]]` link in a note, right-click: the same item.
 - [ ] Select text: the selection popover appears next to it and inside the pane (not clipped by the tab, not behind panes). Highlight, underline, add a note; each survives closing and reopening the tab.
 - [ ] Notebook panel (⌘\ or the command) opens inside the pane, lists entries, resizes with the pane and with a split.
 - [ ] Contents, find, zoom, page turns work with mouse and with the commands.
 
 ## Keys
-- [ ] Reader shortcuts work whenever the Margin tab is active, including right after clicking the tab header or the status bar, with focus outside the view.
-- [ ] ⌘F opens Margin's find, not Electron's or Obsidian's search. ⌘− / ⌘0 / zoom-in (⌘+ and ⌘=) zoom the book and do not zoom the Obsidian UI (Electron menu accelerators).
+- [ ] Reader shortcuts work whenever the Readside tab is active, including right after clicking the tab header or the status bar, with focus outside the view.
+- [ ] ⌘F opens Readside's find, not Electron's or Obsidian's search. ⌘− / ⌘0 / zoom-in (⌘+ and ⌘=) zoom the book and do not zoom the Obsidian UI (Electron menu accelerators).
 - [ ] PageUp/PageDown and ⌥←/⌥→ turn pages with focus in the page area; in the contents list or notebook they scroll that panel.
 - [ ] Typing in a thought, search or page field keeps its own keys; ⌘ chords still work there.
-- [ ] Windows/Linux (if available): ⌘ chords do nothing; each command id (new-thought, toggle-notebook, toggle-contents, find, zoom-in, zoom-out, zoom-fit, next-page, prev-page) can be bound under Hotkeys and works in a Margin tab only.
+- [ ] Windows/Linux (if available): ⌘ chords do nothing; each command id (new-thought, toggle-notebook, toggle-contents, find, zoom-in, zoom-out, zoom-fit, next-page, prev-page) can be bound under Hotkeys and works in a Readside tab only.
 
 ## Opening and focus
-- [ ] Setting "Open PDFs in Margin" is off by default: a PDF opened from the explorer, with a non-Margin tab active, opens in Obsidian's viewer. With a Margin tab active, it loads in that Margin tab.
-- [ ] Turn it on: opening a PDF from the explorer, from the quick switcher and from a `[[x.pdf]]` link switches the active tab to Margin. Activating an existing Obsidian PDF tab, or one restored at startup, also switches it. A PDF in another split or another window stays in Obsidian's viewer.
-- [ ] With a Margin tab of Walden in the background since startup (not yet shown), "Open in Margin" on Walden switches to that tab; no second tab opens.
+- [ ] Setting "Open PDFs in Readside" is off by default: a PDF opened from the explorer, with a non-Readside tab active, opens in Obsidian's viewer. With a Readside tab active, it loads in that Readside tab.
+- [ ] Turn it on: opening a PDF from the explorer, from the quick switcher and from a `[[x.pdf]]` link switches the active tab to Readside. Activating an existing Obsidian PDF tab, or one restored at startup, also switches it. A PDF in another split or another window stays in Obsidian's viewer.
+- [ ] With a Readside tab of Walden in the background since startup (not yet shown), "Open in Readside" on Walden switches to that tab; no second tab opens.
 - [ ] `[[Walden.pdf#page=3]]` lands on page 3.
 - [ ] After each way of opening (explorer, switcher, tab click) keyboard focus is in the reader: page keys work without clicking first.
-- [ ] `obsidian://margin?file=Books%2FWalden.pdf&loc=...` (from a notebook-note link) jumps and flashes every time, even when already at that spot; an already open tab is reused.
-- [ ] The PDF view's `#page` handoff: open Obsidian's own PDF viewer on a subpath, with the setting on, and confirm Margin shows that page (no flash of the wrong page).
+- [ ] `obsidian://readside?file=Books%2FWalden.pdf&loc=...` (from a notebook-note link) jumps and flashes every time, even when already at that spot; an already open tab is reused.
+- [ ] The PDF view's `#page` handoff: open Obsidian's own PDF viewer on a subpath, with the setting on, and confirm Readside shows that page (no flash of the wrong page).
 
 ## Plugin lifecycle
-- [ ] Toggle Margin off and on in Community plugins with a book open: the tab goes away cleanly; turning it on again, a reopened workspace shows a placeholder tab that becomes the book when focused. Notes and highlights are intact. Check the unload order in the developer console: no errors, no "previous instance did not finish" warning.
+- [ ] Toggle Readside off and on in Community plugins with a book open: the tab goes away cleanly; turning it on again, a reopened workspace shows a placeholder tab that becomes the book when focused. Notes and highlights are intact. Check the unload order in the developer console: no errors, no "previous instance did not finish" warning.
 - [ ] Reinstall (replace main.js, styles.css, manifest.json, then toggle, then also reload Obsidian): the open tab reopens as a placeholder and returns to the same page; no store errors.
 - [ ] Disable the plugin while typing a thought (do not click away): reopen, the text is in the thought. A notice appears only if a save really failed.
 - [ ] Turn a page, then at once quit Obsidian (⌘Q): on relaunch the book opens at the new page.
@@ -43,25 +50,25 @@ Setup: open `obsidian/test-vault`, enable Margin, open `Books/Walden.pdf` with M
 - [ ] Recovery notices (copy the vault first): corrupt `books/<id>.json` with no backup, with a backup, and `index.json`: each gives its notice (kept aside / restored / rebuilt) that stays until dismissed; the damaged copy is kept.
 
 ## Notebook note
-- [ ] `Margin/Walden.md` appears about 1.5 s after the first highlight; sections follow the outline; page links open the book at that page.
+- [ ] `Readside/Walden.md` appears about 1.5 s after the first highlight; sections follow the outline; page links open the book at that page.
 - [ ] Changing the folder in settings moves the notes; turning "Notebook notes" off stops rewriting.
-- [ ] Mirror note open in a split pane while reading: page turns make no copies and no note flicker. Adding a thought (or highlight) rewrites the note; if you had typed into the note meanwhile, a copy `Walden (edited ...).md` appears once, with a notice. Edit the note and change nothing in Margin: no copy. Reading forward (new furthest pages) alone does not rewrite the note; `margin-progress` catches up on the next real change. If the note is open with unsaved edits when Margin rewrites it, Obsidian merges and shows a "file changed" notice.
+- [ ] Mirror note open in a split pane while reading: page turns make no copies and no note flicker. Adding a thought (or highlight) rewrites the note; if you had typed into the note meanwhile, a copy `Walden (edited ...).md` appears once, with a notice. Edit the note and change nothing in Readside: no copy. Reading forward (new furthest pages) alone does not rewrite the note; `margin-progress` catches up on the next real change. If the note is open with unsaved edits when Readside rewrites it, Obsidian merges and shows a "file changed" notice.
 - [ ] Rename or move the PDF in the explorer: the book, its notes and the note follow.
-- [ ] Disable Margin, move the PDF in the explorer (or in Finder with Obsidian closed), enable Margin, open the PDF at its new place: its highlights and thoughts are there. A copy of a PDF (the original still in the vault) opens as a new, empty book.
+- [ ] Disable Readside, move the PDF in the explorer (or in Finder with Obsidian closed), enable Readside, open the PDF at its new place: its highlights and thoughts are there. A copy of a PDF (the original still in the vault) opens as a new, empty book.
 
 ## Look
 - [ ] Light and dark themes (a community theme too): desk behind the page, surfaces (margin, notebook, popover), accent fill contrast on buttons, pressed vs hover states are all distinguishable and readable; switching theme live updates without reopening.
-- [ ] No Margin styles leak: other panes, the settings dialog, and the status bar look unchanged.
+- [ ] No Readside styles leak: other panes, the settings dialog, and the status bar look unchanged.
 
 ## Compatibility and scale
 - [ ] The thought editor (CodeMirror) works inside Obsidian: typing, undo, selection, IME, no console errors about duplicate `@codemirror/state` instances. Obsidian ships state 6.5 and view 6.38; confirm it runs on those.
-- [ ] Coexists with PDF++: both enabled, open the same PDF in each; no duplicated or broken highlights, no hotkey clashes, "Open PDFs in Margin" on and off both behave.
+- [ ] Coexists with PDF++: both enabled, open the same PDF in each; no duplicated or broken highlights, no hotkey clashes, "Open PDFs in Readside" on and off both behave.
 - [ ] A 500+ page book: opens quickly, scrolling and zoom stay smooth, memory stays sane, find and contents work, the note regenerates promptly.
 
 ## EPUB
 Setup: `pnpm setup:obsidian-vault -- --epub`, then open `Books/Pride and Prejudice.epub` and `Books/The Picture of Dorian Gray.epub`.
 
-- [ ] 1. Click an `.epub` in the file list. Expected: it opens in Margin; sections flow as one column; the title is the book's.
+- [ ] 1. Click an `.epub` in the file list. Expected: it opens in Readside; sections flow as one column; the title is the book's.
 - [ ] 2. Scroll the whole book. Expected: images appear as they come near; no jumps while reading.
 - [ ] 3. Select text, highlight with 1-5, pencil, add a note; reload Obsidian. Expected: highlights are repainted.
 - [ ] 4. `+` in the margin, ⌘⇧M, and T on a selection. Expected: margin notes with threads; tabs or a card when the pane is narrow.
@@ -70,7 +77,7 @@ Setup: `pnpm setup:obsidian-vault -- --epub`, then open `Books/Pride and Prejudi
 - [ ] 7. Contents: pick entries with fragments. Expected: they jump inside a chapter; auto labels name the right chapter.
 - [ ] 8. Zoom ±, Fit. Expected: text reflows; notes stay beside their lines.
 - [ ] 9. Click an internal link and a footnote ref, then an external link. Expected: internal ones jump; external opens the browser.
-- [ ] 10. Open `Margin/<book>.md`. Expected: sections follow the TOC; `§ N · “…”` links jump back into the book.
+- [ ] 10. Open `Readside/<book>.md`. Expected: sections follow the TOC; `§ N · “…”` links jump back into the book.
 - [ ] 11. Copy link, paste in a note, click it. Expected: it jumps; backlinks show in the reader.
 - [ ] 12. Open the shelf. Expected: the EPUB's cover shows.
 - [ ] 13. Desktop app: import an EPUB in the library and read it. Expected: it reads. Known follow-ups: book fonts don't load (the desktop CSP has no `font-src` for `blob:`), external links do nothing, title and author come from the file name, no covers.
@@ -96,7 +103,7 @@ Setup: `pnpm setup:obsidian-vault -- --epub`, then open `Books/Pride and Prejudi
 
 Downloads are real (about 27–41 MB for the first pair). Use the test vault, with the developer console
 open (View → Toggle developer tools) and its Network tab when a step says so. `translation/` below means
-`<vault>/.obsidian/plugins/margin-reader/translation/`. Set Settings → Translation → "Translate to" to
+`<vault>/.obsidian/plugins/readside/translation/`. Set Settings → Translation → "Translate to" to
 Українська unless a step says otherwise. Walden is English; for Ukrainian text, use any Ukrainian PDF.
 
 ### Obsidian's CSP (verified statically; smoke-test it here)
@@ -104,7 +111,7 @@ open (View → Toggle developer tools) and its Network tab when a step says so. 
   `blob:` worker and compiles its wasm there. Verified statically: Obsidian's only CSP is a `<meta>`
   `style-src` (no `script-src`, `worker-src` or `default-src`, and no CSP header), so both are allowed;
   this step is the real-app smoke test.
-  Expected: the translation appears. If the engine can't start, the card shows "Margin couldn't start the
+  Expected: the translation appears. If the engine can't start, the card shows "Readside couldn't start the
   translation engine: <cause>; update Obsidian or report this", within about a minute at worst, never a
   spinner that stays. Nothing is written to `translation/` but the downloads (no `worker.js`).
   **Report back:**
@@ -140,7 +147,7 @@ open (View → Toggle developer tools) and its Network tab when a step says so. 
   both legs (Українська → English and English → Deutsch) and their total.
 - [ ] 8. **Save as thought.** Click Save as thought.
   Expected: the selection gets a yellow highlight with a thought whose body is the translation, shown in
-  the margin; it appears in `Margin/<book>.md` after about 1.5 s.
+  the margin; it appears in `Readside/<book>.md` after about 1.5 s.
 - [ ] 9. **Copy.** Click Copy, and separately press ⌘C (Ctrl+C) with nothing selected in the card.
   Expected: the clipboard holds the translation, not the page text. Selecting part of the translation and
   pressing ⌘C copies just that part.
@@ -161,7 +168,7 @@ open (View → Toggle developer tools) and its Network tab when a step says so. 
   Window frame style: Native), a lone Alt press and release focuses the window's menu bar. Hover with Alt,
   then release Alt.
   Expected: the tooltip hides. Note whether the menu bar took focus and whether the next keys (arrows,
-  page keys, typing in a thought) went to the menu instead of Margin. Repeat with the default (hidden)
+  page keys, typing in a thought) went to the menu instead of Readside. Repeat with the default (hidden)
   frame. Report both, with the OS.
 - [ ] **Partial words.** Hover words in a PDF whose text layer splits words into many spans (some
   scanned or typeset PDFs do), and a word broken by a hyphen at a line end.
@@ -174,11 +181,11 @@ open (View → Toggle developer tools) and its Network tab when a step says so. 
   pair offers it again. Removing the last pair removes `translation/engine/` too. Remove all asks "Click
   again to remove all", then empties `translation/`. While a download runs, the pairs it needs and Remove
   all are disabled.
-- [ ] 12. **Damaged model.** With the app closed (or Margin off), truncate a model file
+- [ ] 12. **Damaged model.** With the app closed (or Readside off), truncate a model file
   (`translation/models/en-uk/<version>/model.enuk.intgemm.alphas.bin`, for example `truncate -s 1000`).
-  Expected: after Margin starts, that pair is treated as not downloaded: L offers it again, Settings no
+  Expected: after Readside starts, that pair is treated as not downloaded: L offers it again, Settings no
   longer lists it, and downloading it again works.
-- [ ] **Off during a download.** Turn Margin off and on (or update it) while a download runs.
+- [ ] **Off during a download.** Turn Readside off and on (or update it) while a download runs.
   Expected: the download stops; no `.part` file stays in `translation/` (a leftover is removed about 10 s
   after the next load).
 

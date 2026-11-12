@@ -13,7 +13,7 @@ import { isAbortError, messageOf, nodeFetcher, requestUrlFetcher, type Fetcher }
 import { ObsidianTranslateHost, readEngineWasm, type HostDeps } from './service';
 import { GLUE_JS, createBergamotWorker } from './workerAssets';
 
-export const ENGINE_START_FAILED = "Margin couldn't start the translation engine";
+export const ENGINE_START_FAILED = "Readside couldn't start the translation engine";
 /** What to do about it, after the cause. */
 export const ENGINE_START_HINT = 'update Obsidian or report this';
 export const REQUEST_URL_WARNING =

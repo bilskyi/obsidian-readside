@@ -68,7 +68,7 @@ describe('BacklinkIndex', () => {
     return { app, pdf };
   }
 
-  it('collects page links (wiki, Markdown, embeds) and Margin URLs, and nothing that points elsewhere', async () => {
+  it('collects page links (wiki, Markdown, embeds) and Readside URLs, and nothing that points elsewhere', async () => {
     const { app, pdf } = await vault();
     await note(app, 'Reading log.md', 'Intro\n- Loved [[Walden.pdf#page=4]]\n![[Books/Walden.pdf#page=9]]\n[x](Books/Walden.pdf#page=12)');
     app.metadataCache.setCache('Reading log.md', {
@@ -313,7 +313,17 @@ describe('BacklinkIndex: ordering, big vaults and idle cost', () => {
     expect(app.vault.cachedReads.get('A.md')).toBe(reads! + 1);
   });
 
-  it('a Margin URL names its book loosely (a leading slash, doubled slashes) or with &amp;: it still counts', async () => {
+  it('finds obsidian://readside links and obsidian://margin links from before the rename', () => {
+    const loc = encodeURIComponent(serializeLocation(page(4)));
+    const hits = marginUrlsIn(`a obsidian://readside?file=Books%2FWalden.pdf&loc=${loc}\nb obsidian://margin?file=Books%2FWalden.pdf&loc=${loc}\nc obsidian://other?file=Books%2FWalden.pdf&loc=${loc}`);
+    expect(hits.map((h) => [h.line, h.file, h.location])).toEqual([
+      [0, 'Books/Walden.pdf', page(4)],
+      [1, 'Books/Walden.pdf', page(4)],
+    ]);
+    expect(marginUrlsIn(`only new: obsidian://readside?file=a.pdf&loc=${loc}`)).toHaveLength(1);
+  });
+
+  it('a Readside URL names its book loosely (a leading slash, doubled slashes) or with &amp;: it still counts', async () => {
     const { app, pdf } = await vault();
     const loc = encodeURIComponent(serializeLocation(page(4)));
     await note(app, 'A.md', `x obsidian://margin?file=%2FBooks%2F%2FWalden.pdf&loc=${loc}`);
@@ -525,7 +535,7 @@ describe('backlinks in the plugin', () => {
     expect(createSplit).toHaveBeenCalledTimes(1);
   });
 
-  it('a split that has become a Margin reader is not reused', async () => {
+  it('a split that has become a Readside reader is not reused', async () => {
     await setup();
     const reader = await openWalden();
     const link: Backlink = { id: 'x', location: page(3), sourcePath: 'Notes/Pond.md', sourceTitle: 'Pond', snippet: '' };
@@ -541,7 +551,7 @@ describe('backlinks in the plugin', () => {
   it('hovering a linking note asks Obsidian’s page preview for it, as a registered hover source', async () => {
     await setup();
     const view = await openWalden();
-    expect(plugin!.hoverLinkSources.get(VIEW_TYPE)).toEqual({ display: 'Margin', defaultMod: true });
+    expect(plugin!.hoverLinkSources.get(VIEW_TYPE)).toEqual({ display: 'Readside', defaultMod: true });
     const hover = vi.fn();
     app.workspace.on('hover-link', hover);
     const link: Backlink = { id: 'x', location: page(3), sourcePath: 'Notes/Pond.md', sourceTitle: 'Pond', snippet: '' };
@@ -584,13 +594,13 @@ describe('backlinks in the plugin', () => {
     const t = await backend().createThought({ bookId });
     await backend().updateThought(t.id, { body: 'see [[Walden.pdf#page=3]]', location: serializeLocation(page(3)) });
     await view.leaf.detach();
-    const mirror = app.vault.getFileByPath('Margin/Walden.md')!;
+    const mirror = app.vault.getFileByPath('Readside/Walden.md')!;
     const md = await app.vault.read(mirror);
-    expect(md).toContain('obsidian://margin?');
+    expect(md).toContain('obsidian://readside?');
     expect(md).toContain('[[Walden.pdf#page=3]]');
     const line = md.split('\n').findIndex((l) => l.includes('[[Walden.pdf#page=3]]'));
     // Obsidian indexes it like any note: its page link resolves to the book.
-    app.metadataCache.setCache('Margin/Walden.md', { links: [{ link: 'Walden.pdf#page=3', original: '[[Walden.pdf#page=3]]', position: pos(line) }] });
+    app.metadataCache.setCache('Readside/Walden.md', { links: [{ link: 'Walden.pdf#page=3', original: '[[Walden.pdf#page=3]]', position: pos(line) }] });
     const pdf = app.vault.getFileByPath('Books/Walden.pdf')!;
     const again = await openWalden();
     toggleNotebook(again);
@@ -609,7 +619,7 @@ describe('backlinks in the plugin', () => {
 });
 
 describe('BacklinkIndex: an EPUB (E7)', () => {
-  it('collects Margin URLs into the EPUB; a #page=N link into it is not a place and is skipped', async () => {
+  it('collects Readside URLs into the EPUB; a #page=N link into it is not a place and is skipped', async () => {
     const app = makeApp();
     const moby = app.vault.addBinary('Books/Moby.epub', pdfBytes('moby'));
     await note(app, 'Log.md', 'See [[Moby.epub#page=4]]');
@@ -625,7 +635,7 @@ describe('BacklinkIndex: an EPUB (E7)', () => {
   });
 });
 
-describe('BacklinkIndex: a Margin URL for the other format is skipped (final review E-M6)', () => {
+describe('BacklinkIndex: a Readside URL for the other format is skipped (final review E-M6)', () => {
   it('an epub place on a PDF, and a page on an EPUB, are not backlinks; matching ones still are', async () => {
     const app = makeApp();
     const pdf = app.vault.addBinary('Books/Walden.pdf', pdfBytes('walden'));

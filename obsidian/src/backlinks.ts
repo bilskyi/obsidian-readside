@@ -42,8 +42,12 @@ export interface MarginUrlHit {
   snippet: string;
 }
 
-/** An `obsidian://margin?…` URL runs until whitespace or what closes a Markdown link or an HTML attribute. */
-const MARGIN_URL = /obsidian:\/\/margin\?([^\s)\]>"'`<]+)/g;
+/**
+ * An `obsidian://readside?…` URL (or `obsidian://margin?…`, written before the rename) runs until whitespace or
+ * what closes a Markdown link or an HTML attribute.
+ */
+const MARGIN_URL = /obsidian:\/\/(?:readside|margin)\?([^\s)\]>"'`<]+)/g;
+const hasUrl = (text: string) => text.includes('obsidian://readside?') || text.includes('obsidian://margin?');
 
 /** The query of a margin URL, decoded (the links.ts format: `file` and `loc`, each encodeURIComponent'd). */
 function marginParams(query: string): Record<string, string> {
@@ -58,11 +62,11 @@ function marginParams(query: string): Record<string, string> {
 
 /** Every Margin link (with a place) in a note's text. A link without a `loc`, or with a bad one, has no place and is left out. */
 export function marginUrlsIn(text: string): MarginUrlHit[] {
-  if (!text.includes('obsidian://margin?')) return [];
+  if (!hasUrl(text)) return [];
   const out: MarginUrlHit[] = [];
   const lines = text.split('\n');
   lines.forEach((lineText, line) => {
-    if (!lineText.includes('obsidian://margin?')) return;
+    if (!hasUrl(lineText)) return;
     for (const m of lineText.matchAll(MARGIN_URL)) {
       const params = marginParams(m[1]);
       const file = params.file?.trim();
@@ -208,7 +212,7 @@ export class BacklinkIndex {
         const all = table.size === 0 ? files.sort((a, b) => b.stat.mtime - a.stat.mtime) : files;
         if (all.length > max && !this.warnedCap) {
           this.warnedCap = true;
-          console.warn(`margin: the vault has ${all.length} notes; Margin links are looked for in the ${max} most recently changed`);
+          console.warn(`margin: the vault has ${all.length} notes; Readside links are looked for in the ${max} most recently changed`);
         }
         for (const f of all.slice(0, max)) {
           // Nothing watches any more (the book closed mid-scan): stop; the next watch picks up from here.

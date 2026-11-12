@@ -241,7 +241,7 @@ export class MirrorWriter {
       // The note changed under us: what is there now is the user's; the next pass keeps it in a copy.
       knownHash = undefined;
     }
-    throw new Error(`${file.path} kept changing while Margin rewrote it; it was left as it is`);
+    throw new Error(`${file.path} kept changing while Readside rewrote it; it was left as it is`);
   }
 
   /**
@@ -275,7 +275,7 @@ export class MirrorWriter {
     let target = join(dir, `${name}.md`);
     for (let n = 2; vault.getAbstractFileByPath(target); n++) target = join(dir, `${name} ${n}.md`);
     await this.owning([target], () => vault.create(target, disk));
-    this.deps.notice(`Margin kept your edits to “${file.basename}” in “${target.slice(target.lastIndexOf('/') + 1, -3)}”. The notebook note is written by Margin.`);
+    this.deps.notice(`Readside kept your edits to “${file.basename}” in “${target.slice(target.lastIndexOf('/') + 1, -3)}”. The notebook note is written by Readside.`);
   }
 
   private async ensureFolder(path: string): Promise<void> {

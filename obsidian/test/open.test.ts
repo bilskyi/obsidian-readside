@@ -88,6 +88,6 @@ describe('EPUBs are books (E7)', () => {
     const n = app.vault.addBinary('B/n.md', pdfBytes());
     expect(recentFirst([n, m, a], new Map([['B/m.epub', '2026-11-09T00:00:00.000Z']])).map((f) => f.path)).toEqual(['B/m.epub', 'B/a.pdf']);
     const picker = new PdfPicker(app, [m, a], () => {}) as PdfPicker & { placeholder: string };
-    expect(picker.placeholder).toBe('Open a book in Margin');
+    expect(picker.placeholder).toBe('Open a book in Readside');
   });
 });

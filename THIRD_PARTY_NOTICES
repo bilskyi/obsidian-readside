@@ -1,7 +1,7 @@
-Third-party notices for Margin Reader
+Third-party notices for Readside
 =====================================
 
-Margin Reader's own code is MIT-licensed (see LICENSE). The release file main.js
+Readside's own code is MIT-licensed (see LICENSE). The release file main.js
 also contains the third-party code below, each under its own licence.
 
 1. Bergamot translator JavaScript glue — Mozilla Public License 2.0
@@ -51,7 +51,7 @@ also contains the third-party code below, each under its own licence.
 
 3. Not bundled
 
-   pdf.js: Margin uses the copy that ships with Obsidian (loadPdfJs()); none of
+   pdf.js: Readside uses the copy that ships with Obsidian (loadPdfJs()); none of
    it is in main.js. The CodeMirror core (@codemirror/state, view, language,
    commands) and @lezer/common, highlight and lr are provided by Obsidian at
    run time and are not bundled either.

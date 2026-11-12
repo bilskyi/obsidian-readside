@@ -47,8 +47,24 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
+describe('obsidian://readside, and obsidian://margin from before the rename', () => {
+  it.each(['readside', 'margin'])('obsidian://%s opens the file and jumps to the location', async (action) => {
+    const p = await setup();
+    const loc = pdfLocation({ page: 3, start: 0, end: 0 });
+    await p.protocolHandlers.get(action)!({ action, file: 'Books/Walden.pdf', loc: serializeLocation(loc) });
+    await waitFor(() => expect(fake.goTo).toHaveBeenCalledWith(loc, expect.objectContaining({ flash: true })));
+    expect(marginLeaves()).toHaveLength(1);
+  });
+
+  it('a copied link is an obsidian://readside link', async () => {
+    const p = await setup();
+    await p.host.copyLink!(walden, pdfLocation({ page: 5, start: 0, end: 0 }), null);
+    expect(writeText.mock.calls[0][0]).toMatch(/^\[p\. 5\]\(obsidian:\/\/readside\?file=Books%2FWalden\.pdf&loc=/);
+  });
+});
+
 describe('obsidian://margin', () => {
-  it('opens the file in Margin and jumps to the location', async () => {
+  it('opens the file in Readside and jumps to the location', async () => {
     const p = await setup();
     const loc = pdfLocation({ page: 2, start: 0, end: 0 });
     await handler(p)({ action: 'margin', file: 'Books/Walden.pdf', loc: serializeLocation(loc) });
@@ -71,7 +87,7 @@ describe('obsidian://margin', () => {
   it('a link to a file that is not in the vault shows a notice and opens nothing', async () => {
     const p = await setup();
     await handler(p)({ action: 'margin', file: 'Books/Nope.pdf' });
-    expect(Notice.messages).toContain("Margin can't find Books/Nope.pdf in this vault.");
+    expect(Notice.messages).toContain("Readside can't find Books/Nope.pdf in this vault.");
     expect(marginLeaves()).toHaveLength(0);
   });
 
@@ -117,14 +133,14 @@ describe('obsidian://margin edge cases', () => {
     const p = await setup();
     app.vault.addBinary('Notes/Walden.md', new TextEncoder().encode('# Walden').buffer as ArrayBuffer);
     await handler(p)({ action: 'margin', file: 'Notes/Walden.md' });
-    expect(Notice.messages).toContain('Margin opens PDF and EPUB books only; Notes/Walden.md is not one.');
+    expect(Notice.messages).toContain('Readside opens PDF and EPUB books only; Notes/Walden.md is not one.');
     expect(marginLeaves()).toHaveLength(0);
   });
 
   it('a link that names no file shows a notice and opens nothing', async () => {
     const p = await setup();
     await handler(p)({ action: 'margin' });
-    expect(Notice.messages).toContain('Margin: this link names no file.');
+    expect(Notice.messages).toContain('Readside: this link names no file.');
     expect(marginLeaves()).toHaveLength(0);
   });
 
@@ -184,7 +200,7 @@ describe('obsidian://margin edge cases', () => {
     const p = await setup();
     writeText.mockRejectedValue(new Error('Document is not focused.'));
     await expect(p.host.copyLink!(walden, pdfLocation({ page: 5, start: 0, end: 0 }), null)).rejects.toThrow(
-      "Margin couldn't copy the link: Document is not focused.",
+      "Readside couldn't copy the link: Document is not focused.",
     );
     expect(Notice.messages).toEqual([]);
   });
@@ -210,14 +226,14 @@ describe('obsidian://margin edge cases', () => {
     });
     fireEvent.click(await screen.findByRole('button', { name: /^Actions for/ }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Copy Link' }));
-    expect(await screen.findByText("Margin couldn't copy the link: Document is not focused.")).toBeTruthy();
+    expect(await screen.findByText("Readside couldn't copy the link: Document is not focused.")).toBeTruthy();
     expect(Notice.messages).toEqual([]);
     expect(screen.queryByText('Link copied')).toBeNull();
   });
 });
 
 describe('obsidian://margin polish', () => {
-  it('a link that arrives when Margin failed to load does nothing more (no unhandled rejection)', async () => {
+  it('a link that arrives when Readside failed to load does nothing more (no unhandled rejection)', async () => {
     const p = await setup();
     const failed = Promise.reject(new Error('store unreadable'));
     failed.catch(() => {});
@@ -239,7 +255,7 @@ describe('obsidian://margin polish', () => {
     expect(marginLeaves()).toHaveLength(1);
   });
 
-  it('a new leaf that is not a Margin view yet (deferred) gets the jump through its view state', async () => {
+  it('a new leaf that is not a Readside view yet (deferred) gets the jump through its view state', async () => {
     const p = await setup();
     const loc = pdfLocation({ page: 3, start: 0, end: 0 });
     const leaf = app.workspace.getLeaf(true);
@@ -265,7 +281,7 @@ describe('obsidian://margin polish', () => {
     };
     const leaf = app.workspace.getLeaf(true);
     await leaf.setViewState({ type: VIEW_TYPE, state: { file: 'Books/Broken.pdf' }, active: true });
-    expect(await screen.findByText(/Margin couldn't open Books\/Broken.pdf/)).toBeTruthy();
+    expect(await screen.findByText(/Readside couldn't open Books\/Broken.pdf/)).toBeTruthy();
     (leaf.view as MarginView).navigate(pdfLocation({ page: 3, start: 0, end: 0 }));
     await leaf.setViewState({ type: VIEW_TYPE, state: { file: walden.path }, active: true });
     await screen.findByRole('heading', { name: 'Walden' });

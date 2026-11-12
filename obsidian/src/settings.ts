@@ -19,7 +19,7 @@ const systemLanguage = (): string | undefined => (typeof navigator === 'undefine
 
 export const DEFAULT_SETTINGS: MarginSettings = {
   mirrorEnabled: true,
-  mirrorFolder: 'Margin',
+  mirrorFolder: 'Readside',
   openPdfsInMargin: false,
   translateTarget: pickDefaultTarget(systemLanguage()),
   translateHover: true,
@@ -126,7 +126,7 @@ export class MarginSettingTab extends PluginSettingTab {
     const save = () => this.host.saveSettings();
     new Setting(containerEl)
       .setName('Notebook notes')
-      .setDesc('Keep a Markdown note of each book’s highlights and thoughts in your vault. Margin rewrites it; edits made in the note are kept in a copy.')
+      .setDesc('Keep a Markdown note of each book’s highlights and thoughts in your vault. Readside rewrites it; edits made in the note are kept in a copy.')
       .addToggle((t) =>
         t.setValue(s.mirrorEnabled).onChange(async (v) => {
           s.mirrorEnabled = v;
@@ -147,7 +147,7 @@ export class MarginSettingTab extends PluginSettingTab {
         await save();
       };
       this.applyFolder = apply;
-      t.setPlaceholder('Margin')
+      t.setPlaceholder('Readside')
         .setValue(s.mirrorFolder)
         .onChange(() => {
           this.cancelFolderApply();
@@ -156,8 +156,8 @@ export class MarginSettingTab extends PluginSettingTab {
       t.inputEl.addEventListener('blur', () => void apply());
     });
     new Setting(containerEl)
-      .setName('Open PDFs in Margin')
-      .setDesc('Use Margin instead of Obsidian’s PDF viewer whenever a PDF opens. Off: PDFs open in Obsidian’s viewer, and “Open in Margin” is in the file menu and the command palette. EPUBs always open in Margin.')
+      .setName('Open PDFs in Readside')
+      .setDesc('Use Readside instead of Obsidian’s PDF viewer whenever a PDF opens. Off: PDFs open in Obsidian’s viewer, and “Open in Readside” is in the file menu and the command palette. EPUBs always open in Readside.')
       .addToggle((t) =>
         t.setValue(s.openPdfsInMargin).onChange(async (v) => {
           s.openPdfsInMargin = v;
@@ -215,7 +215,7 @@ export class MarginSettingTab extends PluginSettingTab {
       [pairs, engine] = await Promise.all([source.installedSizes(), source.engineSize()]);
     } catch (e) {
       list.replaceChildren();
-      new Setting(list).setName("Margin couldn't read its downloads").setDesc(e instanceof Error ? e.message : String(e));
+      new Setting(list).setName("Readside couldn't read its downloads").setDesc(e instanceof Error ? e.message : String(e));
       return;
     }
     list.replaceChildren();
@@ -225,7 +225,7 @@ export class MarginSettingTab extends PluginSettingTab {
       try {
         await action();
       } catch (e) {
-        new Notice(`Margin couldn't remove ${what}: ${e instanceof Error ? e.message : String(e)}`);
+        new Notice(`Readside couldn't remove ${what}: ${e instanceof Error ? e.message : String(e)}`);
       }
       rerender();
     };

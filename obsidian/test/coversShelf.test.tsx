@@ -326,11 +326,11 @@ describe('covers in the plugin', () => {
     read.mockResolvedValueOnce([{ types: ['text/plain'], getType: async (t: string) => new Blob(['x'], { type: t }) }]);
     fireEvent.click(more);
     await Menu.shown.at(-1)!.item('Paste image as cover').handler!();
-    expect(Notice.messages.at(-1)).toBe('Margin found no image on the clipboard.');
+    expect(Notice.messages.at(-1)).toBe('Readside found no image on the clipboard.');
     read.mockRejectedValueOnce(new Error('denied'));
     fireEvent.click(more);
     await Menu.shown.at(-1)!.item('Paste image as cover').handler!();
-    expect(Notice.messages.at(-1)).toBe("Margin couldn't use the pasted image: denied");
+    expect(Notice.messages.at(-1)).toBe("Readside couldn't use the pasted image: denied");
     expect(p.store.entryOf('a')?.cover).toMatchObject({ kind: 'pasted', ext: 'jpg' });
   });
 

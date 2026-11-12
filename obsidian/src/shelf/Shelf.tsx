@@ -81,7 +81,7 @@ export interface ShelfProps {
   random?: () => number;
 }
 
-const TITLE = 'Margin shelf';
+const TITLE = 'Readside shelf';
 const ALWAYS_VISIBLE: ShelfVisibility = { visible: () => true, onShow: () => () => {} };
 
 /** What the index says about which books there are and where: a change in it adds, moves or removes entries. */
@@ -304,7 +304,7 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
       <div className="shelf">
         <h1 className="shelf-title">{TITLE}</h1>
         <p className="shelf-sub" role="alert">
-          Margin couldn't read its saved books: {failed}
+          Readside couldn't read its saved books: {failed}
         </p>
       </div>
     );
@@ -316,7 +316,7 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
       <div className="shelf">
         <div className="shelf-empty">
           <h1 className="shelf-title">{TITLE}</h1>
-          <p className="shelf-empty-text">Open a PDF or EPUB in Margin to start your shelf</p>
+          <p className="shelf-empty-text">Open a PDF or EPUB in Readside to start your shelf</p>
           <button type="button" className="shelf-button shelf-button-primary" onClick={onPick}>
             {OPEN_LABEL}
           </button>
@@ -609,7 +609,7 @@ export class ShelfBoundary extends Component<{ children: ReactNode }, { failed: 
       return (
         <div className="shelf">
           <p className="shelf-sub" role="alert">
-            Margin couldn't show the shelf.
+            Readside couldn't show the shelf.
           </p>
           <div className="shelf-actions">
             <button type="button" className="shelf-button" onClick={() => this.setState({ failed: false })}>

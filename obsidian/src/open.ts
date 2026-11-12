@@ -79,7 +79,7 @@ export class PdfPicker extends FuzzySuggestModal<TFile> {
     super(app);
     this.files = files;
     this.choose = choose;
-    this.setPlaceholder('Open a book in Margin');
+    this.setPlaceholder('Open a book in Readside');
   }
   getItems(): TFile[] {
     return this.files;

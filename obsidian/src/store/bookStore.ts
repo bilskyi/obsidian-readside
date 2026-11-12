@@ -219,7 +219,7 @@ export type DeepReadonly<T> = T extends (infer U)[]
     ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
     : T;
 
-const closedError = () => new MarginError('Margin has been turned off; this change was not saved.');
+const closedError = () => new MarginError('Readside has been turned off; this change was not saved.');
 
 function parseIndex(json: string): IndexFile | null {
   try {

@@ -1,3 +1,5 @@
+import { appName } from '../../lib/appName';
+
 /** What the reader says when a book won't open: a plain sentence, and the raw error behind a "Details" toggle. */
 export interface OpenError {
   message: string;
@@ -6,10 +8,14 @@ export interface OpenError {
 
 export const OPEN_ERROR_MESSAGES = {
   invalid: "This file isn't a readable PDF.",
-  password: "This PDF is password-protected; Margin can't open protected PDFs yet.",
+  get password() {
+    return `This PDF is password-protected; ${appName()} can't open protected PDFs yet.`;
+  },
   missing: "The file couldn't be found.",
-  other: "Margin couldn't read this PDF; it may be damaged.",
-} as const;
+  get other() {
+    return `${appName()} couldn't read this PDF; it may be damaged.`;
+  },
+};
 
 /** How a missing file reads in an OS or Rust error: ENOENT (Node), `os error 2` (Rust io), "No such file or directory". */
 const MISSING_FILE = /ENOENT|os error 2\b|No such file/i;

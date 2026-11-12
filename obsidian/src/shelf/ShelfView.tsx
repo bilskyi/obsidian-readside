@@ -4,8 +4,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import type { Location } from '../../../src/lib/types';
 import { Shelf, ShelfBoundary, type OpenIn, type ShelfSource, type ShelfState, type ShelfVisibility } from './Shelf';
 
+/** Kept from before the rename to Readside: workspace.json names it (see identity.ts). */
 export const SHELF_VIEW_TYPE = 'margin-shelf';
-export const SHELF_TITLE = 'Margin shelf';
+export const SHELF_TITLE = 'Readside shelf';
 
 /** What the shelf needs from the plugin. */
 export interface ShelfHost {

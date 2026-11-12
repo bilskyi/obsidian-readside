@@ -112,7 +112,7 @@ describe('MarginPlugin', () => {
     });
   });
 
-  it('"Open current PDF in Margin" is available for an active PDF only, and opens it', async () => {
+  it('"Open current PDF in Readside" is available for an active PDF only, and opens it', async () => {
     const p = await setup();
     const cmd = p.command('open-current-pdf');
     expect(cmd.checkCallback!(true)).toBe(false);
@@ -125,11 +125,11 @@ describe('MarginPlugin', () => {
     expect((marginLeaves()[0].view as MarginView).file?.path).toBe('Books/Walden.pdf');
   });
 
-  it('the file menu offers "Open in Margin" for PDFs only', async () => {
+  it('the file menu offers "Open in Readside" for PDFs only', async () => {
     await setup();
     const pdfMenu = new Menu();
     app.workspace.trigger('file-menu', pdfMenu, walden, 'file-explorer');
-    expect(pdfMenu.items.map((i) => i.title)).toEqual(['Open in Margin']);
+    expect(pdfMenu.items.map((i) => i.title)).toEqual(['Open in Readside']);
     const mdMenu = new Menu();
     app.workspace.trigger('file-menu', mdMenu, app.vault.getFileByPath('Notes/Reading.md'), 'file-explorer');
     expect(mdMenu.items).toHaveLength(0);
@@ -137,18 +137,18 @@ describe('MarginPlugin', () => {
     await waitFor(() => expect(marginLeaves()).toHaveLength(1));
   });
 
-  it('the editor menu offers "Open in Margin" for a PDF link under the cursor', async () => {
+  it('the editor menu offers "Open in Readside" for a PDF link under the cursor', async () => {
     await setup();
     const line = 'See [[Books/Walden.pdf]] today';
     const on = new Menu();
     app.workspace.trigger('editor-menu', on, { getCursor: () => ({ line: 0, ch: 8 }), getLine: () => line }, { file: null });
-    expect(on.items.map((i) => i.title)).toEqual(['Open in Margin']);
+    expect(on.items.map((i) => i.title)).toEqual(['Open in Readside']);
     const off = new Menu();
     app.workspace.trigger('editor-menu', off, { getCursor: () => ({ line: 0, ch: 1 }), getLine: () => line }, { file: null });
     expect(off.items).toHaveLength(0);
   });
 
-  it('opening a PDF that is already open in Margin reveals that view instead of a second one', async () => {
+  it('opening a PDF that is already open in Readside reveals that view instead of a second one', async () => {
     const p = await setup();
     await p.openInMargin(walden);
     const first = marginLeaves()[0];
@@ -166,7 +166,7 @@ describe('MarginPlugin', () => {
     expect(leaf.view.getViewType()).toBe('pdf');
   });
 
-  it('with "Open PDFs in Margin" on and no registry mapping, a PDF opened in the built-in viewer switches to Margin', async () => {
+  it('with "Open PDFs in Readside" on and no registry mapping, a PDF opened in the built-in viewer switches to Readside', async () => {
     await setup({ openPdfsInMargin: true }, { fallback: true });
     const leaf = await openIn('pdf', 'Books/Walden.pdf');
     app.workspace.trigger('file-open', walden);
@@ -325,7 +325,7 @@ describe('MarginPlugin', () => {
     plugin = null;
     await p.unloading;
     expect(Notice.messages).toEqual([
-      "Margin couldn't save the text of 1 thought before it was turned off; that text is not in the vault.",
+      "Readside couldn't save the text of 1 thought before it was turned off; that text is not in the vault.",
     ]);
     expect(Notice.durations).toEqual([0]);
     // The retry timer is gone: no save is attempted against the uninstalled backend.
@@ -357,7 +357,7 @@ describe('MarginPlugin', () => {
     await p.unloading;
     expect(String(await save)).toContain('write failed');
     expect(Notice.messages).toEqual([
-      "Margin couldn't save the text of 1 thought before it was turned off; that text is not in the vault.",
+      "Readside couldn't save the text of 1 thought before it was turned off; that text is not in the vault.",
     ]);
   });
 
@@ -368,16 +368,16 @@ describe('MarginPlugin', () => {
     expect(p.command('open-current-pdf').checkCallback!(true)).toBe(true);
     const menu = new Menu();
     app.workspace.trigger('file-menu', menu, scan, 'file-explorer');
-    expect(menu.items.map((i) => i.title)).toEqual(['Open in Margin']);
+    expect(menu.items.map((i) => i.title)).toEqual(['Open in Readside']);
     const editorMenu = new Menu();
     const line = '[[Books/Scan.PDF]]';
     app.workspace.trigger('editor-menu', editorMenu, { getCursor: () => ({ line: 0, ch: 3 }), getLine: () => line }, { file: null });
-    expect(editorMenu.items.map((i) => i.title)).toEqual(['Open in Margin']);
+    expect(editorMenu.items.map((i) => i.title)).toEqual(['Open in Readside']);
     await p.openInMargin(scan);
     expect((marginLeaves()[0].view as MarginView).canAcceptExtension('PDF')).toBe(true);
   });
 
-  it('with "Open PDFs in Margin" on and no registry mapping, only the active PDF leaf switches; other leaves showing the file stay', async () => {
+  it('with "Open PDFs in Readside" on and no registry mapping, only the active PDF leaf switches; other leaves showing the file stay', async () => {
     await setup({ openPdfsInMargin: true }, { fallback: true });
     const other = await openIn('pdf', 'Books/Walden.pdf');
     const active = await openIn('pdf', 'Books/Walden.pdf');
@@ -387,7 +387,7 @@ describe('MarginPlugin', () => {
     expect(other.view.getViewType()).toBe('pdf');
   });
 
-  it('with "Open PDFs in Margin" on and no registry mapping, a PDF announced before its tab is active and loaded still switches', async () => {
+  it('with "Open PDFs in Readside" on and no registry mapping, a PDF announced before its tab is active and loaded still switches', async () => {
     await setup({ openPdfsInMargin: true }, { fallback: true });
     const md = await openIn('markdown', 'Notes/Reading.md');
     expect(app.workspace.activeLeaf).toBe(md);
@@ -402,7 +402,7 @@ describe('MarginPlugin', () => {
     expect(md.view.getViewType()).toBe('markdown');
   });
 
-  it('"Open PDFs in Margin" maps .pdf to Margin in Obsidian’s view registry, and hands it back when off or unloaded', async () => {
+  it('"Open PDFs in Readside" maps .pdf to Readside in Obsidian’s view registry, and hands it back when off or unloaded', async () => {
     const p = await setup({ openPdfsInMargin: true });
     const reg = (app as unknown as { viewRegistry: { getTypeByExtension(e: string): string | undefined } }).viewRegistry;
     expect(reg.getTypeByExtension('pdf')).toBe(VIEW_TYPE);
@@ -426,7 +426,7 @@ describe('MarginPlugin', () => {
     expect(reg.getTypeByExtension('pdf')).toBe('someone-else');
   });
 
-  it('with "Open PDFs in Margin" on and no registry mapping, the page the viewer was opened at carries over', async () => {
+  it('with "Open PDFs in Readside" on and no registry mapping, the page the viewer was opened at carries over', async () => {
     await setup({ openPdfsInMargin: true }, { fallback: true });
     const leaf = app.workspace.getLeaf(true);
     await leaf.setViewState({ type: 'pdf', state: { file: 'Books/Walden.pdf' }, active: true });
@@ -444,13 +444,13 @@ describe('MarginPlugin', () => {
     await plugin.onload();
     await plugin.storeReady;
     await expect(plugin.pdfReady).rejects.toThrow('no engine');
-    expect(Notice.messages).toEqual(["Margin couldn't load Obsidian's PDF engine, so it can't show PDFs: Error: no engine"]);
+    expect(Notice.messages).toEqual(["Readside couldn't load Obsidian's PDF engine, so it can't show PDFs: Error: no engine"]);
     const id = (await plugin.store.openPath('Books/Walden.pdf', await fingerprint(pdfBytes('walden')), 'Walden')).book.id;
     await app.fileManager.renameFile(walden, 'Books/Walden Pond.pdf');
     await waitFor(() => expect(plugin!.store.bookIdForPath('Books/Walden Pond.pdf')).toBe(id));
   });
 
-  it('a PDF moved while Margin was off opens on its book, highlights and all', async () => {
+  it('a PDF moved while Readside was off opens on its book, highlights and all', async () => {
     const p = await setup();
     const fp = await fingerprint(pdfBytes('walden'));
     const id = (await p.store.openPath('Books/Walden.pdf', fp, 'Walden')).book.id;
@@ -471,7 +471,7 @@ describe('MarginPlugin', () => {
     expect((await plugin.store.openPath('Archive/Walden copy.pdf', fp, 'Walden copy')).book.id).not.toBe(id);
   });
 
-  it('openInMargin reveals a deferred Margin tab of the same file instead of opening a duplicate', async () => {
+  it('openInMargin reveals a deferred Readside tab of the same file instead of opening a duplicate', async () => {
     const p = await setup();
     const other = await openIn('markdown', 'Notes/Reading.md');
     const deferred = app.workspace.addDeferredLeaf(VIEW_TYPE, { file: 'Books/Walden.pdf' });
@@ -485,7 +485,7 @@ describe('MarginPlugin', () => {
     expect(marginLeaves()).toHaveLength(1);
   });
 
-  it('a link into a deferred Margin tab of the file jumps there, in that tab', async () => {
+  it('a link into a deferred Readside tab of the file jumps there, in that tab', async () => {
     const p = await setup();
     const deferred = app.workspace.addDeferredLeaf(VIEW_TYPE, { file: 'Books/Walden.pdf' });
     const loc = pdfLocation({ page: 3, start: 0, end: 0 });
@@ -494,7 +494,7 @@ describe('MarginPlugin', () => {
     await waitFor(() => expect(fake.goTo).toHaveBeenCalledWith(loc, expect.objectContaining({ flash: true })));
   });
 
-  it('a deferred Margin tab of another file is not reused', async () => {
+  it('a deferred Readside tab of another file is not reused', async () => {
     const p = await setup();
     const deferred = app.workspace.addDeferredLeaf(VIEW_TYPE, { file: 'Books/Other.pdf' });
     await p.openInMargin(walden);
@@ -509,7 +509,7 @@ describe('MarginPlugin', () => {
     await plugin.onload();
     await expect(plugin.storeReady).rejects.toThrow('list failed');
     await tick();
-    expect(Notice.messages).toEqual(["Margin couldn't read its saved books: Error: list failed"]);
+    expect(Notice.messages).toEqual(["Readside couldn't read its saved books: Error: list failed"]);
   });
 
   it('a rename or delete the store cannot follow is shown, not left unhandled', async () => {
@@ -519,11 +519,11 @@ describe('MarginPlugin', () => {
     await app.fileManager.renameFile(walden, 'Books/Walden Pond.pdf');
     await waitFor(() => expect(Notice.messages).toHaveLength(1));
     expect(Notice.messages[0]).toBe(
-      "Margin couldn't follow the move of Books/Walden.pdf to Books/Walden Pond.pdf; its book stays under the old path: Error: disk full",
+      "Readside couldn't follow the move of Books/Walden.pdf to Books/Walden Pond.pdf; its book stays under the old path: Error: disk full",
     );
     await app.vault.delete(walden);
     await waitFor(() => expect(Notice.messages).toHaveLength(2));
-    expect(Notice.messages[1]).toBe("Margin couldn't mark the books under Books/Walden Pond.pdf as missing: Error: disk gone");
+    expect(Notice.messages[1]).toBe("Readside couldn't mark the books under Books/Walden Pond.pdf as missing: Error: disk gone");
   });
 });
 
@@ -700,24 +700,24 @@ describe('MarginPlugin: what the store recovered on load', () => {
 describe('recoveryMessage', () => {
   it('names the book or the file in every kind', () => {
     expect(recoveryMessage({ kind: 'book-kept-aside', bookId: 'b', name: 'Walden', keptAs: 'x/b.json.corrupt-1' })).toBe(
-      'Margin: the saved highlights and thoughts of “Walden” were damaged and there was no backup. The damaged copy is kept as x/b.json.corrupt-1.',
+      'Readside: the saved highlights and thoughts of “Walden” were damaged and there was no backup. The damaged copy is kept as x/b.json.corrupt-1.',
     );
     expect(recoveryMessage({ kind: 'backup-restored', bookId: 'b', name: 'Walden', keptAs: 'x/b.json.corrupt-1', backup: 'x/backups/b-2026-11-10.json' })).toBe(
-      'Margin: the saved highlights and thoughts of “Walden” were damaged and have been restored from x/backups/b-2026-11-10.json; changes after that backup may be missing. The damaged copy is kept as x/b.json.corrupt-1.',
+      'Readside: the saved highlights and thoughts of “Walden” were damaged and have been restored from x/backups/b-2026-11-10.json; changes after that backup may be missing. The damaged copy is kept as x/b.json.corrupt-1.',
     );
     expect(recoveryMessage({ kind: 'index-rebuilt', keptAs: 'x/index.json.corrupt-1', books: [] })).toBe(
-      "Margin's index of books was damaged and has been rebuilt from the book files. The damaged copy is kept as x/index.json.corrupt-1.",
+      "Readside's index of books was damaged and has been rebuilt from the book files. The damaged copy is kept as x/index.json.corrupt-1.",
     );
     expect(recoveryMessage({ kind: 'index-rebuilt', keptAs: 'x/i', books: [{ bookId: 'a', name: 'Walden' }] })).toBe(
-      "Margin's index of books was damaged and has been rebuilt from the book files. The damaged copy is kept as x/i. 1 book came back with its highlights and thoughts: “Walden”. It reconnects when its PDF is opened in Margin.",
+      "Readside's index of books was damaged and has been rebuilt from the book files. The damaged copy is kept as x/i. 1 book came back with its highlights and thoughts: “Walden”. It reconnects when its PDF is opened in Readside.",
     );
     const seven = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((name) => ({ bookId: name, name }));
     expect(recoveryMessage({ kind: 'index-rebuilt', keptAs: 'x/i', books: seven })).toBe(
-      "Margin's index of books was damaged and has been rebuilt from the book files. The damaged copy is kept as x/i. 7 books came back with their highlights and thoughts: “A”, “B”, “C”, “D”, “E” and 2 more. Each reconnects when its PDF is opened in Margin.",
+      "Readside's index of books was damaged and has been rebuilt from the book files. The damaged copy is kept as x/i. 7 books came back with their highlights and thoughts: “A”, “B”, “C”, “D”, “E” and 2 more. Each reconnects when its PDF is opened in Readside.",
     );
     expect(recoveryMessage({ kind: 'orphans-swept', books: seven })).toContain('“E” and 2 more.');
     expect(recoveryMessage({ kind: 'orphans-swept', books: [{ bookId: 'a', name: 'Walden' }, { bookId: 'b', name: 'Emma' }] })).toBe(
-      'Margin found 2 books not linked to a PDF in this vault: “Walden”, “Emma”. Their highlights and thoughts are kept, marked missing.',
+      'Readside found 2 books not linked to a PDF in this vault: “Walden”, “Emma”. Their highlights and thoughts are kept, marked missing.',
     );
     expect(recoveryMessage({ kind: 'orphans-swept', books: [{ bookId: 'a', name: 'Walden' }] })).toContain('found 1 book not linked');
   });
@@ -985,7 +985,7 @@ describe('MarginPlugin: EPUBs (E7)', () => {
   const addMoby = () =>
     app.vault.addBinary('Books/Moby.epub', makeEpub({ title: 'Moby-Dick', creator: 'Herman Melville', sections: [{ name: 'a.xhtml', html: '<p>Call me Ishmael.</p>' }] }));
 
-  it('load maps .epub to Margin when no one has it; unload hands it back', async () => {
+  it('load maps .epub to Readside when no one has it; unload hands it back', async () => {
     const p = await setup();
     expect(registry().getTypeByExtension('epub')).toBe(VIEW_TYPE);
     // .pdf stays with Obsidian's viewer (the setting is off).
@@ -1025,23 +1025,23 @@ describe('MarginPlugin: EPUBs (E7)', () => {
     warn.mockRestore();
   });
 
-  it('the file menu and the editor menu offer "Open in Margin" for an EPUB', async () => {
+  it('the file menu and the editor menu offer "Open in Readside" for an EPUB', async () => {
     await setup();
     const moby = addMoby();
     const menu = new Menu();
     app.workspace.trigger('file-menu', menu, moby, 'file-explorer');
-    expect(menu.items.map((i) => i.title)).toEqual(['Open in Margin']);
+    expect(menu.items.map((i) => i.title)).toEqual(['Open in Readside']);
     const line = 'See [[Books/Moby.epub]] today';
     const ed = new Menu();
     app.workspace.trigger('editor-menu', ed, { getCursor: () => ({ line: 0, ch: 8 }), getLine: () => line }, { file: null });
-    expect(ed.items.map((i) => i.title)).toEqual(['Open in Margin']);
+    expect(ed.items.map((i) => i.title)).toEqual(['Open in Readside']);
   });
 
-  it('"Open current book in Margin" (id open-current-pdf) works for an active EPUB', async () => {
+  it('"Open current book in Readside" (id open-current-pdf) works for an active EPUB', async () => {
     const p = await setup();
     addMoby();
     const cmd = p.command('open-current-pdf');
-    expect(cmd.name).toBe('Open current book in Margin');
+    expect(cmd.name).toBe('Open current book in Readside');
     await openIn('markdown', 'Books/Moby.epub');
     expect(cmd.checkCallback!(true)).toBe(true);
   });
@@ -1100,7 +1100,7 @@ describe('MarginPlugin: an EPUB’s notebook note (E7 fix round 1)', () => {
     const book = await p.host.openBook(moby, await app.vault.readBinary(moby), meta);
     await backend().createAnnotation({ bookId: book.id, location: epubLocation({ section: 2, start: 0, end: 15 }), quote: 'Call me Ishmael', color: 'yellow' });
     await p.writeMirror(book.id);
-    return app.vault.read(app.vault.getFileByPath('Margin/Moby-Dick.md')!);
+    return app.vault.read(app.vault.getFileByPath('Readside/Moby-Dick.md')!);
   }
 
   it('writeMirror files the highlight under its TOC section (the EPUB outline, not pdf.js), while pdf.js is still loading', async () => {
@@ -1124,7 +1124,7 @@ describe('MarginPlugin: an EPUB’s notebook note (E7 fix round 1)', () => {
     expect(await noteFor(plugin, moby)).toContain('## Loomings\n\n> [!quote] [§ 2](');
   });
 
-  it('a stale .epub mapping to Margin (left from before) is kept at load and handed back at unload', async () => {
+  it('a stale .epub mapping to Readside (left from before) is kept at load and handed back at unload', async () => {
     const a = makeApp();
     const reg = (a as unknown as { viewRegistry: Registry }).viewRegistry;
     reg.typeByExtension.epub = VIEW_TYPE;

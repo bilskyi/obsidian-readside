@@ -1,4 +1,5 @@
 import { Inflate } from 'fflate';
+import { appName } from '../../lib/appName';
 
 /**
  * EPUB package reader: zip directory, container.xml, OPF (metadata, manifest, spine), nav/NCX, cover,
@@ -65,7 +66,7 @@ const MAX_TOC_ENTRIES = 5_000;
 const unreadable = (why: string) => new EpubError(`This file isn't a readable EPUB (${why})`);
 const drm = () => new EpubError('This EPUB is DRM-protected');
 const tooManySections = () =>
-  new EpubError(`This EPUB has more than ${MAX_SPINE.toLocaleString('en-US')} sections, more than Margin can open`);
+  new EpubError(`This EPUB has more than ${MAX_SPINE.toLocaleString('en-US')} sections, more than ${appName()} can open`);
 const fixedLayout = () => new EpubError("Fixed-layout EPUBs aren't supported yet");
 
 const OBFUSCATION = new Set(['http://www.idpf.org/2008/embedding', 'http://ns.adobe.com/pdf/enc#RC']);

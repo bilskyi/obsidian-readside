@@ -15,7 +15,7 @@ import { GLUE_FILE, buildWorkerScript } from './workerAssetsPlugin.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..', '..');
-const root = join(here, '..', 'test-vault', '.obsidian', 'plugins', 'margin-reader', 'translation');
+const root = join(here, '..', 'test-vault', '.obsidian', 'plugins', 'readside', 'translation');
 const wasmPath = join(root, 'engine', ENGINE.file.sha256.slice(0, 12), ENGINE.file.name);
 const pairDir = (p) => join(root, 'models', `${p.from}-${p.to}`, p.version);
 

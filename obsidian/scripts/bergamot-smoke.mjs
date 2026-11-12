@@ -15,7 +15,7 @@ import vm from 'node:vm';
 import { ENGINE, PAIRS } from '../../src/translate/catalog.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const root = join(here, '..', 'test-vault', '.obsidian', 'plugins', 'margin-reader', 'translation');
+const root = join(here, '..', 'test-vault', '.obsidian', 'plugins', 'readside', 'translation');
 const gluePath = join(here, '..', 'src', 'translate', 'vendor', 'bergamot-translator.js');
 const CDN = 'https://firefox-settings-attachments.cdn.mozilla.net/';
 const INITIAL_MEMORY = 41943040; // 40 MiB; the heap grows as models are loaded.

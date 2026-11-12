@@ -19,7 +19,7 @@ describe('main.js (production bundle, as pnpm build:obsidian makes it)', () => {
     expect(MPL_NOTICE).toBe('This Source Code Form is subject to the terms of the Mozilla Public');
     expect(js).toContain(MPL_NOTICE);
     // The translate host is wired: its strings are in the bundle (not tree-shaken away).
-    expect(js).toContain("Margin couldn't start the translation engine");
+    expect(js).toContain("Readside couldn't start the translation engine");
     expect(Buffer.byteLength(js)).toBeLessThanOrEqual(MAIN_JS_BUDGET);
   }, 60_000);
 

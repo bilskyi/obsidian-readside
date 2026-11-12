@@ -55,6 +55,7 @@ import {
 } from './ReaderState';
 import { rendersPaged, useReaderRenderer } from './useReaderRenderer';
 import { useReaderShortcuts } from './useReaderShortcuts';
+import { appName } from '../../lib/appName';
 
 /** Language detection (franc) for ⌥-hover, loaded on first use: desktop, with no translate host, never loads it. */
 let detectModule: Promise<typeof import('../../translate/detect')> | null = null;
@@ -89,7 +90,7 @@ const EPUB_LINE_PX = 29;
 /** A margin focus request for a thought that never gets a margin note is dropped after this long. */
 export const MARGIN_FOCUS_MS = 3000;
 
-const SAVE_FAILED = "Couldn't save your thought. Margin will retry.";
+const saveFailed = () => `Couldn't save your thought. ${appName()} will retry.`;
 const UNLINK_UNAVAILABLE = "Couldn't unlink this thought: its highlight isn't loaded.";
 const LINK_UNAVAILABLE = "Couldn't copy the link: its highlight isn't loaded.";
 
@@ -1202,7 +1203,7 @@ export function ReaderView({
           // One toast per failing thought, not one per retry.
           if (!failureShown.current.has(id)) {
             failureShown.current.add(id);
-            setProblem(SAVE_FAILED);
+            setProblem(saveFailed());
           }
           throw e;
         },

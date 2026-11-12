@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const vault = join(here, '..', 'test-vault');
 const dist = join(here, '..', 'dist');
-const pluginDir = join(vault, '.obsidian', 'plugins', 'margin-reader');
+const pluginDir = join(vault, '.obsidian', 'plugins', 'readside');
 
 const PAGES = [
   { title: 'Economy', lines: ['Walden', 'Economy', 'Simplify, simplify. Our life is frittered away by detail.'] },
@@ -107,4 +107,4 @@ for (const f of ['main.js', 'styles.css', 'manifest.json']) {
   if (existsSync(link) || (() => { try { return lstatSync(link).isSymbolicLink(); } catch { return false; } })()) unlinkSync(link);
   symlinkSync(relative(pluginDir, join(dist, f)), link);
 }
-console.log(`test vault ready: ${vault}\n  sample: Books/Walden.pdf${wantEpub ? ', ' + EPUBS.map((e) => 'Books/' + e.file).join(', ') : ' (add --epub for two sample EPUBs)'}\n  plugin: .obsidian/plugins/margin-reader → obsidian/dist (run pnpm build:obsidian or pnpm dev:obsidian)`);
+console.log(`test vault ready: ${vault}\n  sample: Books/Walden.pdf${wantEpub ? ', ' + EPUBS.map((e) => 'Books/' + e.file).join(', ') : ' (add --epub for two sample EPUBs)'}\n  plugin: .obsidian/plugins/readside → obsidian/dist (run pnpm build:obsidian or pnpm dev:obsidian)`);

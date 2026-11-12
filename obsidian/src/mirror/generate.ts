@@ -7,7 +7,7 @@ import type { Annotation, Book, Location, OutlineEntry, Thought } from '../../..
 import { buildObsidianUrl } from '../links';
 
 export const MIRROR_NOTICE =
-  '<!-- This note is written by Margin. Edit thoughts in Margin; changes made here are kept in a conflict copy. -->';
+  '<!-- This note is written by Readside. Edit thoughts in Readside; changes made here are kept in a conflict copy. -->';
 
 export interface MirrorInput {
   book: Book;
@@ -46,7 +46,7 @@ export const bookTitle = (book: Book): string => book.title?.trim() || fileStem(
 /** A wikilink to the book file; a path with `|`, `#`, `^` or `]]` would break one, so it is the plain path then. */
 const bookLink = (path: string) => (/[|#^]|\]\]/.test(path) ? path : `[[${path}]]`);
 
-/** `[p. 42](obsidian://margin?…)`; an EPUB place is named by its section (`§ 7`), whatever its stored label says. */
+/** `[p. 42](obsidian://readside?…)`; an EPUB place is named by its section (`§ 7`), whatever its stored label says. */
 const pageLink = (path: string, location: Location) =>
   `[${location.kind === 'epub' ? placeName(location) : location.label}](${buildObsidianUrl(path, location)})`;
 

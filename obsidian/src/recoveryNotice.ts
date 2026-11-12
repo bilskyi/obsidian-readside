@@ -18,18 +18,18 @@ const count = (n: number) => `${n} ${n === 1 ? 'book' : 'books'}`;
 export function recoveryMessage(e: RecoveryEvent): string {
   switch (e.kind) {
     case 'book-kept-aside':
-      return `Margin: the saved highlights and thoughts of ${quoted(e.name)} were damaged and there was no backup. The damaged copy is kept as ${e.keptAs}.`;
+      return `Readside: the saved highlights and thoughts of ${quoted(e.name)} were damaged and there was no backup. The damaged copy is kept as ${e.keptAs}.`;
     case 'backup-restored':
-      return `Margin: the saved highlights and thoughts of ${quoted(e.name)} were damaged and have been restored from ${e.backup}; changes after that backup may be missing. The damaged copy is kept as ${e.keptAs}.`;
+      return `Readside: the saved highlights and thoughts of ${quoted(e.name)} were damaged and have been restored from ${e.backup}; changes after that backup may be missing. The damaged copy is kept as ${e.keptAs}.`;
     case 'index-rebuilt': {
-      const head = `Margin's index of books was damaged and has been rebuilt from the book files. The damaged copy is kept as ${e.keptAs}.`;
+      const head = `Readside's index of books was damaged and has been rebuilt from the book files. The damaged copy is kept as ${e.keptAs}.`;
       const n = e.books.length;
       if (n === 0) return head;
-      return `${head} ${count(n)} came back with ${n === 1 ? 'its' : 'their'} highlights and thoughts: ${names(e.books)}. ${n === 1 ? 'It reconnects' : 'Each reconnects'} when its PDF is opened in Margin.`;
+      return `${head} ${count(n)} came back with ${n === 1 ? 'its' : 'their'} highlights and thoughts: ${names(e.books)}. ${n === 1 ? 'It reconnects' : 'Each reconnects'} when its PDF is opened in Readside.`;
     }
     case 'orphans-swept': {
       const n = e.books.length;
-      return `Margin found ${count(n)} not linked to a PDF in this vault: ${names(e.books)}. Their highlights and thoughts are kept, marked missing.`;
+      return `Readside found ${count(n)} not linked to a PDF in this vault: ${names(e.books)}. Their highlights and thoughts are kept, marked missing.`;
     }
   }
 }

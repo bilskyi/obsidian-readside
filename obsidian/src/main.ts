@@ -21,6 +21,7 @@ import { displayTitle } from '../../src/lib/titles';
 import * as bodySaves from '../../src/features/notebook/bodySaves';
 import { flushAll, flushAllBounded } from '../../src/features/notebook/editorRegistry';
 import { setBackend } from '../../src/lib/backend';
+import { setAppName } from '../../src/lib/appName';
 import { pdfLocation, serializeLocation } from '../../src/lib/location';
 import type { Location } from '../../src/lib/types';
 import { pdfjs, pdfjsDocOptions, setPdfjs } from '../../src/renderers/pdf/pdfjsProvider';
@@ -50,10 +51,16 @@ import { MarginError } from './store/errors';
 import { fingerprint } from './store/hash';
 import { MarginView, OBSIDIAN_PDF_VIEW, VIEW_TYPE, type MarginHost } from './view/MarginView';
 import { SHELF_VIEW_TYPE, ShelfView, type ShelfHost } from './shelf/ShelfView';
+import { APP_NAME, LEGACY_MIRROR_FOLDER, LEGACY_PROTOCOL_ACTION, PROTOCOL_ACTION } from './identity';
+import { IMPORTED_NOTICE, importLegacyData } from './legacyImport';
 import '../../src/renderers/pdf/pdf.css';
 import '../../src/renderers/epub/epub.css';
 
+// Shared reader text names the app: in Obsidian it is Readside (the desktop app stays Margin).
+setAppName(APP_NAME);
+
 /**
+ * (The key keeps the plugin's old id on purpose; see identity.ts.)
  * The unload tail of a Margin instance that is still writing, on `window` because each load evaluates
  * main.js afresh: a plugin update disables and at once enables Margin, and the new instance must not
  * read (or repair) the store's files while the old one is still writing them.
@@ -93,7 +100,7 @@ export const MIRROR_FLUSH_TIMEOUT_MS = 2500;
 /** How long after load the translation folder is tidied (leftovers of an interrupted download). */
 export const TRANSLATION_SWEEP_DELAY_MS = 10_000;
 /** The ribbon's tooltip and the command's name. */
-export const SHELF_TITLE_COMMAND = 'Open Margin shelf';
+export const SHELF_TITLE_COMMAND = 'Open Readside shelf';
 
 type HandoffWindow = Window & { [UNLOADING_KEY]?: Promise<void> };
 
@@ -241,7 +248,7 @@ export default class MarginPlugin extends Plugin {
       try {
         await navigator.clipboard.writeText(markdownLink(file.path, location, quote));
       } catch (e) {
-        throw new MarginError(`Margin couldn't copy the link: ${e instanceof Error ? e.message : String(e)}`);
+        throw new MarginError(`Readside couldn't copy the link: ${e instanceof Error ? e.message : String(e)}`);
       }
     },
     linkSuggest: (query, session) => suggestNotes(this.app, query, undefined, session),
@@ -333,7 +340,7 @@ export default class MarginPlugin extends Plugin {
     openBook: (path, location, openIn = false) => {
       const file = this.app.vault.getFileByPath(path);
       if (!isBook(file)) {
-        new Notice(`Margin can't find ${path} in this vault.`);
+        new Notice(`Readside can't find ${path} in this vault.`);
         return;
       }
       void this.openInMargin(file, location, openIn);
@@ -365,7 +372,22 @@ export default class MarginPlugin extends Plugin {
     if (previous) await settledOrTimeout(previous, HANDOFF_TIMEOUT_MS, () =>
         console.warn(`margin: the previous instance did not finish unloading within ${HANDOFF_TIMEOUT_MS} ms; loading anyway`),
       );
-    this.settings = { ...DEFAULT_SETTINGS, ...((await this.loadData()) as Partial<MarginSettings> | null) };
+    const root = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}`);
+    // The plugin was Margin (id margin-reader): its books, notes and settings come across once, before
+    // anything here reads them. A failure leaves both folders as they were; the next load tries again.
+    try {
+      if (await importLegacyData(this.app.vault.adapter, this.app.vault.configDir, root)) new Notice(IMPORTED_NOTICE);
+    } catch (e) {
+      new Notice(`Readside couldn't import your books and notes from Margin; it tries again next time: ${String(e)}`, 0);
+    }
+    const saved = (await this.loadData()) as Partial<MarginSettings> | null;
+    this.settings = { ...DEFAULT_SETTINGS, ...saved };
+    // An install from before the rename keeps its notebook notes where they are: with no folder saved,
+    // notes already on record (mirrors.json) mean the old default, Margin/.
+    if (saved?.mirrorFolder === undefined && (await this.hasRecordedMirrors(root))) {
+      this.settings.mirrorFolder = LEGACY_MIRROR_FOLDER;
+      await this.saveData(this.settings);
+    }
     // data.json edited by hand (or synced from elsewhere): a folder the settings tab would refuse is not used.
     const folder = typeof this.settings.mirrorFolder === 'string' ? normalizeFolder(this.settings.mirrorFolder) : null;
     if (folder === null || folderError(folder, this.app.vault.configDir)) {
@@ -374,7 +396,6 @@ export default class MarginPlugin extends Plugin {
     }
     this.mirrorApplied = { enabled: this.settings.mirrorEnabled, folder: this.settings.mirrorFolder };
     normalizeTranslationSettings(this.settings);
-    const root = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}`);
     this.store = new BookStore(this.app.vault.adapter, root, { pathExists: (p) => this.app.vault.getAbstractFileByPath(p) !== null });
     // Anything load() repaired (a damaged book or index, books swept back) is named to the user; it stays until dismissed.
     this.store.onRecovery((e) => new Notice(recoveryMessage(e), 0));
@@ -403,8 +424,8 @@ export default class MarginPlugin extends Plugin {
     // Separate, so a pdf.js failure leaves rename/delete tracking working (and the other way round).
     this.pdfReady = (async () => setPdfjs(await loadPdfJs(), OBSIDIAN_PDF_OPTIONS))();
     this.storeReady = this.store.load();
-    this.pdfReady.catch((e) => new Notice(`Margin couldn't load Obsidian's PDF engine, so it can't show PDFs: ${String(e)}`, 0));
-    this.storeReady.catch((e) => new Notice(`Margin couldn't read its saved books: ${String(e)}`, 0));
+    this.pdfReady.catch((e) => new Notice(`Readside couldn't load Obsidian's PDF engine, so it can't show PDFs: ${String(e)}`, 0));
+    this.storeReady.catch((e) => new Notice(`Readside couldn't read its saved books: ${String(e)}`, 0));
     // Cover files of books the index no longer has (and pasted images no longer chosen) go.
     this.storeReady.then(() => this.covers.sweep()).catch((e) => console.warn('margin: could not tidy the covers folder', e));
     this.ready = Promise.all([this.pdfReady, this.storeReady]).then(() => undefined);
@@ -431,7 +452,7 @@ export default class MarginPlugin extends Plugin {
     this.registerView(VIEW_TYPE, (leaf) => new MarginView(leaf, this.host));
     this.registerView(SHELF_VIEW_TYPE, (leaf) => new ShelfView(leaf, this.shelfHost));
     // Hovering a linking note in a marker's list previews it (Page preview core plugin; with Mod by default).
-    this.registerHoverLinkSource(VIEW_TYPE, { display: 'Margin', defaultMod: true });
+    this.registerHoverLinkSource(VIEW_TYPE, { display: 'Readside', defaultMod: true });
     // Registered after registerView, so it runs before the view type goes (cleanups run last first):
     // .pdf is handed back to Obsidian's viewer before Margin's view type is unregistered.
     this.register(() => this.setPdfDefault(false));
@@ -443,13 +464,15 @@ export default class MarginPlugin extends Plugin {
     // Later, not at load: leftovers of a download cut short (a quit, a crash, a plugin update) go.
     const sweepTimer = window.setTimeout(() => this.sweepTranslation(), this.translationSweepDelayMs);
     this.register(() => window.clearTimeout(sweepTimer));
-    this.registerObsidianProtocolHandler('margin', (params) => this.openLink(params));
+    // New links say obsidian://readside; obsidian://margin is the same link from before the rename, kept for good.
+    this.registerObsidianProtocolHandler(PROTOCOL_ACTION, (params) => this.openLink(params));
+    this.registerObsidianProtocolHandler(LEGACY_PROTOCOL_ACTION, (params) => this.openLink(params));
     // The shelf; its "Open a book…" button is the picker this used to open.
     this.addRibbonIcon('book-open', SHELF_TITLE_COMMAND, () => void this.openShelf());
     this.addCommand({ id: 'open-shelf', name: SHELF_TITLE_COMMAND, callback: () => void this.openShelf() });
     this.addCommand({
       id: 'open-current-pdf',
-      name: 'Open current book in Margin',
+      name: 'Open current book in Readside',
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         if (!isBook(file)) return false;
@@ -537,7 +560,7 @@ export default class MarginPlugin extends Plugin {
         const failed = bodySaves.failedCount();
         if (failed > 0) {
           new Notice(
-            `Margin couldn't save the text of ${failed} ${failed === 1 ? 'thought' : 'thoughts'} before it was turned off; that text is not in the vault.`,
+            `Readside couldn't save the text of ${failed} ${failed === 1 ? 'thought' : 'thoughts'} before it was turned off; that text is not in the vault.`,
             0,
           );
         }
@@ -621,7 +644,7 @@ export default class MarginPlugin extends Plugin {
       try {
         registry.registerExtensions(['epub'], VIEW_TYPE);
       } catch (e) {
-        console.warn('margin: could not open EPUBs in Margin by default', e);
+        console.warn('margin: could not open EPUBs in Readside by default', e);
         return;
       }
     }
@@ -675,7 +698,7 @@ export default class MarginPlugin extends Plugin {
 
   async readBytes(path: string): Promise<ArrayBuffer> {
     const file = this.app.vault.getFileByPath(path);
-    if (!file) throw new MarginError(`Margin can't find ${path} in this vault.`);
+    if (!file) throw new MarginError(`Readside can't find ${path} in this vault.`);
     return this.app.vault.readBinary(file);
   }
 
@@ -728,8 +751,19 @@ export default class MarginPlugin extends Plugin {
     else await leaf.setViewState({ type: VIEW_TYPE, state: { file: file.path, loc: serializeLocation(location) }, active: true });
   }
 
+  /** Whether mirrors.json records at least one notebook note (an unreadable one counts as none). */
+  private async hasRecordedMirrors(root: string): Promise<boolean> {
+    try {
+      const text = await this.app.vault.adapter.read(`${root}/mirrors.json`);
+      const books = (JSON.parse(text) as { books?: Record<string, unknown> }).books;
+      return !!books && Object.keys(books).length > 0;
+    } catch {
+      return false;
+    }
+  }
+
   /**
-   * `obsidian://margin?file=<vault path>&loc=<Location JSON>` (spec §7): opens the PDF in Margin (an open
+   * `obsidian://readside?file=<vault path>` (or the older `obsidian://margin?…`)&loc=<Location JSON>`: opens the PDF in Readside (an open
    * view of it is reused) and jumps there with a flash. No usable `loc`: the book opens where it was left.
    */
   async openLink(params: ObsidianProtocolData): Promise<void> {
@@ -740,17 +774,17 @@ export default class MarginPlugin extends Plugin {
     }
     const target = parseMarginParams(params);
     if (!target) {
-      new Notice('Margin: this link names no file.');
+      new Notice('Readside: this link names no file.');
       return;
     }
     // A hand-written link may say `/Books/x.pdf` or `Books\x.pdf`.
     const file = this.app.vault.getFileByPath(normalizePath(target.file));
     if (!file) {
-      new Notice(`Margin can't find ${target.file} in this vault.`);
+      new Notice(`Readside can't find ${target.file} in this vault.`);
       return;
     }
     if (!isBook(file)) {
-      new Notice(`Margin opens PDF and EPUB books only; ${target.file} is not one.`);
+      new Notice(`Readside opens PDF and EPUB books only; ${target.file} is not one.`);
       return;
     }
     await this.openInMargin(file, target.location);
@@ -776,7 +810,7 @@ export default class MarginPlugin extends Plugin {
 
   private addOpenItem(menu: Menu, file: TAbstractFile): void {
     if (!(file instanceof TFile) || !isBook(file)) return;
-    menu.addItem((item) => item.setTitle('Open in Margin').setIcon('book-open').onClick(() => void this.openInMargin(file)));
+    menu.addItem((item) => item.setTitle('Open in Readside').setIcon('book-open').onClick(() => void this.openInMargin(file)));
   }
 
   /**
@@ -852,7 +886,7 @@ export default class MarginPlugin extends Plugin {
       await this.store.renamePath(oldPath, file.path);
       for (const v of this.marginViews()) v.refreshBook();
     } catch (e) {
-      new Notice(`Margin couldn't follow the move of ${oldPath} to ${file.path}; its book stays under the old path: ${String(e)}`, 0);
+      new Notice(`Readside couldn't follow the move of ${oldPath} to ${file.path}; its book stays under the old path: ${String(e)}`, 0);
     }
     // Covers never block tracking: a cover chosen from this image (or one under this folder) follows it, after the book did.
     try {
@@ -870,7 +904,7 @@ export default class MarginPlugin extends Plugin {
       else if (file instanceof TFolder) this.outlines.clear();
       await this.store.markMissing(file.path);
     } catch (e) {
-      new Notice(`Margin couldn't mark the books under ${file.path} as missing: ${String(e)}`, 0);
+      new Notice(`Readside couldn't mark the books under ${file.path} as missing: ${String(e)}`, 0);
     }
     // Covers never block tracking: a cover chosen from this image goes back to automatic, after the books were marked.
     try {

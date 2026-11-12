@@ -18,14 +18,14 @@ describe('settings tab', () => {
   it('shows the three settings with their current values', () => {
     const { setting } = tab();
     expect((setting('Notebook notes').components[0] as ToggleComponent).getValue()).toBe(true);
-    expect((setting('Notebook notes folder').components[0] as TextComponent).getValue()).toBe('Margin');
-    expect((setting('Open PDFs in Margin').components[0] as ToggleComponent).getValue()).toBe(false);
+    expect((setting('Notebook notes folder').components[0] as TextComponent).getValue()).toBe('Readside');
+    expect((setting('Open PDFs in Readside').components[0] as ToggleComponent).getValue()).toBe(false);
   });
 
   it('saves each change', async () => {
     const { host, setting } = tab();
     await (setting('Notebook notes').components[0] as ToggleComponent).toggle(false);
-    await (setting('Open PDFs in Margin').components[0] as ToggleComponent).toggle(true);
+    await (setting('Open PDFs in Readside').components[0] as ToggleComponent).toggle(true);
     expect(host.settings).toMatchObject({ mirrorEnabled: false, openPdfsInMargin: true });
     expect(host.saveSettings).toHaveBeenCalledTimes(2);
   });
@@ -33,10 +33,10 @@ describe('settings tab', () => {
   it('stores the folder normalised, on blur', async () => {
     const { host, setting } = tab();
     const text = setting('Notebook notes folder').components[0] as TextComponent;
-    await text.type(' Reading / ./Margin/.. / ');
-    expect(host.settings.mirrorFolder).toBe('Margin');
+    await text.type(' Reading / ./Readside/.. / ');
+    expect(host.settings.mirrorFolder).toBe('Readside');
     text.inputEl.dispatchEvent(new Event('blur'));
-    await vi.waitFor(() => expect(host.settings.mirrorFolder).toBe('Reading/Margin'));
+    await vi.waitFor(() => expect(host.settings.mirrorFolder).toBe('Reading/Readside'));
     expect(host.saveSettings).toHaveBeenCalledTimes(1);
     expect(normalizeFolder('\\a\\\\b/')).toBe('a/b');
     expect(normalizeFolder('./../a/./b/..')).toBe('a/b');
@@ -87,9 +87,9 @@ describe('settings tab', () => {
       await text.type(bad);
       text.inputEl.dispatchEvent(new Event('blur'));
       await Promise.resolve();
-      expect(host.settings.mirrorFolder).toBe('Margin');
+      expect(host.settings.mirrorFolder).toBe('Readside');
       expect(s.desc).toMatch(/config folder|starts with a dot/);
-      expect(s.desc).toContain('Still using “Margin”');
+      expect(s.desc).toContain('Still using “Readside”');
     }
     expect(folderError('.obsidian/x', '.obsidian')).toMatch(/config folder/);
     expect(folderError('Custom/conf', 'Custom/conf')).toMatch(/config folder/);
@@ -265,7 +265,7 @@ describe('settings tab: Translation (T7)', () => {
     const { inList } = translationTab(source);
     await vi.waitFor(() => expect(inList().length).toBe(2));
     await (inList()[0].components[0] as ButtonComponent).click();
-    expect(Notice.messages).toContain("Margin couldn't remove it: disk says no");
+    expect(Notice.messages).toContain("Readside couldn't remove it: disk says no");
     await vi.waitFor(() => expect(inList().map((s) => s.name)[0]).toBe('Українська → English'));
   });
 
@@ -304,7 +304,7 @@ describe('Settings → Translation: two-step Remove all (T7 review)', () => {
     }
   });
 
-  it('a failed Remove all says "Margin couldn\'t remove the downloads: …"', async () => {
+  it('a failed Remove all says "Readside couldn\'t remove the downloads: …"', async () => {
     const source = new FakeSource();
     source.pairs = [{ key: 'uk-en', bytes: 21_941_581 }];
     source.removeAll = async () => {
@@ -315,7 +315,7 @@ describe('Settings → Translation: two-step Remove all (T7 review)', () => {
     const all = inList()[1].components[0] as ButtonComponent;
     await all.click();
     await all.click();
-    expect(Notice.messages).toContain("Margin couldn't remove the downloads: disk says no");
+    expect(Notice.messages).toContain("Readside couldn't remove the downloads: disk says no");
   });
 
   it('copy uses a straight apostrophe', async () => {
@@ -324,6 +324,6 @@ describe('Settings → Translation: two-step Remove all (T7 review)', () => {
       throw new Error('nope');
     };
     const { inList } = translationTab(source);
-    await vi.waitFor(() => expect(inList().map((s) => s.name)).toEqual(["Margin couldn't read its downloads"]));
+    await vi.waitFor(() => expect(inList().map((s) => s.name)).toEqual(["Readside couldn't read its downloads"]));
   });
 });

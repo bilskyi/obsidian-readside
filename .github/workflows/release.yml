@@ -44,5 +44,5 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" \
             --draft \
             --title "${GITHUB_REF_NAME}" \
-            --notes "Margin Reader ${GITHUB_REF_NAME}" \
+            --notes "Readside ${GITHUB_REF_NAME}" \
             obsidian/dist/main.js manifest.json obsidian/dist/styles.css

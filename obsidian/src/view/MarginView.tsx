@@ -25,6 +25,7 @@ import type { TranslateHost } from '../../../src/translate/types';
 import { markdownLink } from '../links';
 import { MarginError } from '../store/errors';
 
+/** Kept from before the rename to Readside: workspace.json names it (see identity.ts). */
 export const VIEW_TYPE = 'margin-reader';
 /** Obsidian's own PDF view type (app.js: Fhe="pdf"). */
 export const OBSIDIAN_PDF_VIEW = 'pdf';
@@ -51,7 +52,7 @@ export async function copyQuoteWithLink(file: TFile, location: Location, quote: 
   try {
     await navigator.clipboard.writeText(quoteWithLink(quote, markdownLink(file.path, location, null)));
   } catch (e) {
-    throw new MarginError(`Margin couldn't copy the quote: ${e instanceof Error ? e.message : String(e)}`);
+    throw new MarginError(`Readside couldn't copy the quote: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -167,7 +168,7 @@ function sameLocation(loc: Location, stored: string | null): boolean {
 }
 
 
-const SHELF_TOOLTIP = 'Open Margin shelf';
+const SHELF_TOOLTIP = 'Open Readside shelf';
 /** The reader's back button goes to the shelf here: Obsidian has no Library screen. */
 const SHELF_BUTTON = { label: 'Shelf', title: SHELF_TOOLTIP, icon: 'library' } as const;
 
@@ -299,7 +300,7 @@ export class MarginView extends FileView implements HoverParent {
     // A title of the book's own wins; otherwise the file's name made readable, read from the file so the
     // header is right at once after a rename (before refreshBook re-reads the book).
     if (this.book && hasOwnTitle(this.book)) return this.book.title!.trim();
-    return this.file ? displayTitle(this.file.basename) || this.file.basename : 'Margin';
+    return this.file ? displayTitle(this.file.basename) || this.file.basename : 'Readside';
   }
   canAcceptExtension(extension: string): boolean {
     const ext = extension.toLowerCase();
@@ -492,9 +493,9 @@ export class MarginView extends FileView implements HoverParent {
       await this.app.workspace.getLeaf('tab').openFile(note);
       return;
     }
-    if (!enabled) new Notice('Margin: notebook notes are turned off in settings.');
-    else if (moved) new Notice("Margin: the notebook note was moved or deleted; it's rewritten on your next change.");
-    else new Notice('Margin: this book has no notebook note yet. It appears after your first highlight or thought.');
+    if (!enabled) new Notice('Readside: notebook notes are turned off in settings.');
+    else if (moved) new Notice("Readside: the notebook note was moved or deleted; it's rewritten on your next change.");
+    else new Notice('Readside: this book has no notebook note yet. It appears after your first highlight or thought.');
   }
 
   /** Writes a Markdown link to the page on screen to the clipboard. */
@@ -504,7 +505,7 @@ export class MarginView extends FileView implements HoverParent {
     const here = this.location.current;
     if (!file || !copyLink) return;
     if (!here) {
-      new Notice('Margin: the book is still opening, so there is no page to link to yet.');
+      new Notice('Readside: the book is still opening, so there is no page to link to yet.');
       return;
     }
     const location = pageLocation(here);
@@ -512,7 +513,7 @@ export class MarginView extends FileView implements HoverParent {
       await copyLink(file, location, null);
       const spot = spotOf(location);
       const where = !spot ? null : location.kind === 'pdf' ? `page ${spot.page}` : placeName(location);
-      new Notice(where ? `Margin: link to ${where} copied.` : 'Margin: link copied.');
+      new Notice(where ? `Readside: link to ${where} copied.` : 'Readside: link copied.');
     } catch (e) {
       new Notice(e instanceof Error ? e.message : String(e));
     }
@@ -586,8 +587,8 @@ export class MarginView extends FileView implements HoverParent {
             title={title}
             error={{
               message: this.hasObsidianViewer()
-                ? `Margin couldn't open ${file.path}. Try opening it again, or use Obsidian's viewer.`
-                : `Margin couldn't open ${file.path}. Try opening it again.`,
+                ? `Readside couldn't open ${file.path}. Try opening it again, or use Obsidian's viewer.`
+                : `Readside couldn't open ${file.path}. Try opening it again.`,
               detail: this.error,
             }}
             retry={{ label: 'Try again', onRetry: () => void this.retry() }}

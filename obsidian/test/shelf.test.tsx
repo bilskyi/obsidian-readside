@@ -80,16 +80,16 @@ describe('opening the shelf', () => {
     expect(shelfLeaves()).toHaveLength(1);
     const view = shelfLeaves()[0].view;
     expect(view).toBeInstanceOf(ShelfView);
-    expect(view.getDisplayText()).toBe('Margin shelf');
+    expect(view.getDisplayText()).toBe('Readside shelf');
     expect(view.getIcon()).toBe('book-open');
-    const heading = await screen.findByRole('heading', { level: 1, name: 'Margin shelf' });
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Readside shelf' });
     expect(heading.closest('.margin-app')?.parentElement).toBe((view as ShelfView).contentEl);
   });
 
   it('no books yet: an empty state whose button opens the picker', async () => {
     const p = await setup();
     await p.openShelf();
-    expect(await screen.findByText('Open a PDF or EPUB in Margin to start your shelf')).toBeTruthy();
+    expect(await screen.findByText('Open a PDF or EPUB in Readside to start your shelf')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Open a book…' }));
     await waitFor(() => expect(Modal.opened[0]).toBeInstanceOf(PdfPicker));
   });
@@ -146,7 +146,7 @@ describe('the grid', () => {
     // Before the store marks it missing, the card may still be there.
     p.shelfHost.openBook('Books/Deep_Work.pdf', null);
     expect(open).not.toHaveBeenCalled();
-    expect(Notice.messages.at(-1)).toBe("Margin can't find Books/Deep_Work.pdf in this vault.");
+    expect(Notice.messages.at(-1)).toBe("Readside can't find Books/Deep_Work.pdf in this vault.");
   });
 
   it('follows the store: a new highlight and a deleted file show without reopening the shelf', async () => {
@@ -287,7 +287,7 @@ describe('teardown', () => {
       };
     });
     await p.openShelf();
-    await screen.findByText('Open a PDF or EPUB in Margin to start your shelf');
+    await screen.findByText('Open a PDF or EPUB in Readside to start your shelf');
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
     });
@@ -323,7 +323,7 @@ describe('a bad summary', () => {
     await plugin!.openShelf();
     const cards = await screen.findAllByRole('listitem');
     expect(cards.map((c) => c.textContent)).toEqual(['Deep WorkNot started', 'Slow ReadingNot started', 'Fine BookNot started2 highlights · 0 thoughts']);
-    expect(screen.queryByText("Margin couldn't show the shelf.")).toBeNull();
+    expect(screen.queryByText("Readside couldn't show the shelf.")).toBeNull();
   });
 
   it('a summary that slips past the checks: the shelf says it could not draw and Reload brings it back', async () => {
@@ -339,11 +339,11 @@ describe('a bad summary', () => {
       });
     const bad = vi.spyOn(p.store, 'shelfEntries').mockImplementation(() => real().map(broken));
     await p.openShelf();
-    expect(await screen.findByText("Margin couldn't show the shelf.")).toBeTruthy();
+    expect(await screen.findByText("Readside couldn't show the shelf.")).toBeTruthy();
     bad.mockRestore();
     fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
     expect(await screen.findByRole('button', { name: /Book A/ })).toBeTruthy();
-    expect(screen.queryByText("Margin couldn't show the shelf.")).toBeNull();
+    expect(screen.queryByText("Readside couldn't show the shelf.")).toBeNull();
     err.mockRestore();
   });
 });
@@ -809,7 +809,7 @@ describe('back to the shelf from a book (H1)', () => {
     const spy = vi.spyOn(p, 'openShelf');
     await openBook(p);
     const button = screen.getByRole('button', { name: 'Shelf' });
-    expect(button.title).toBe('Open Margin shelf');
+    expect(button.title).toBe('Open Readside shelf');
     expect(button.querySelector('svg')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Library' })).toBeNull();
     fireEvent.click(button);
@@ -820,12 +820,12 @@ describe('back to the shelf from a book (H1)', () => {
     expect(shelfLeaves()).toHaveLength(1);
   });
 
-  it('the tab header has an “Open Margin shelf” action (there in focus mode, where the toolbar is not)', async () => {
+  it('the tab header has an “Open Readside shelf” action (there in focus mode, where the toolbar is not)', async () => {
     const p = await setup({ books: [bookFile('w', 'Books/Walden.pdf', 'Walden')], index });
     const spy = vi.spyOn(p, 'openShelf');
     const { leaf } = await openBook(p);
     const actions = leaf.view.containerEl.querySelectorAll<HTMLElement>('.view-header .view-action');
-    expect([...actions].map((a) => [a.dataset.icon, a.getAttribute('aria-label')])).toEqual([['library', 'Open Margin shelf']]);
+    expect([...actions].map((a) => [a.dataset.icon, a.getAttribute('aria-label')])).toEqual([['library', 'Open Readside shelf']]);
     // Focus mode hides the toolbar; the header action stays.
     fireEvent.click(screen.getByRole('button', { name: 'Focus mode' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Shelf' })).toBeNull());

@@ -53,7 +53,7 @@ const highlight = (p: MarginPlugin, quote = 'Simplify') =>
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Closes the reader (its note is written then), so a later change is only pending in the scheduler. */
 const closeView = () => app.workspace.getLeavesOfType(VIEW_TYPE)[0].detach();
-const note = () => app.vault.getFileByPath('Margin/Walden.md');
+const note = () => app.vault.getFileByPath('Readside/Walden.md');
 
 afterEach(async () => {
   if (plugin) {
@@ -108,7 +108,7 @@ describe('notebook mirror', () => {
     const atWrite: { backend: unknown; closed: boolean }[] = [];
     const write = app.vault.adapter.write.bind(app.vault.adapter);
     app.vault.adapter.write = async (path, data) => {
-      if (path === 'Margin/Walden.md') atWrite.push({ backend: backend(), closed: close.mock.calls.length > 0 });
+      if (path === 'Readside/Walden.md') atWrite.push({ backend: backend(), closed: close.mock.calls.length > 0 });
       return write(path, data);
     };
     p.unload();
@@ -163,21 +163,21 @@ describe('notebook mirror', () => {
     await waitFor(() => expect(note()).not.toBeNull());
     const renamePath = vi.spyOn(p.store, 'renamePath');
     await app.fileManager.renameFile(walden, 'Books/Walden Pond.pdf');
-    await waitFor(() => expect(app.vault.getFileByPath('Margin/Walden Pond.md')).not.toBeNull());
+    await waitFor(() => expect(app.vault.getFileByPath('Readside/Walden Pond.md')).not.toBeNull());
     expect(note()).toBeNull();
-    expect(await app.vault.read(app.vault.getFileByPath('Margin/Walden Pond.md')!)).toContain('> Simplify');
+    expect(await app.vault.read(app.vault.getFileByPath('Readside/Walden Pond.md')!)).toContain('> Simplify');
     await sleep(30);
     expect(renamePath.mock.calls).toEqual([['Books/Walden.pdf', 'Books/Walden Pond.pdf']]);
   });
 
-  it('a note edited in the vault is kept in a copy, with a notice, when Margin rewrites it', async () => {
+  it('a note edited in the vault is kept in a copy, with a notice, when Readside rewrites it', async () => {
     const p = await setup();
     await highlight(p);
     await waitFor(() => expect(note()).not.toBeNull());
     await app.vault.modify(note()!, 'my own words');
     await highlight(p, 'Later');
     await waitFor(async () => expect(await app.vault.read(note()!)).toContain('> Later'));
-    const copy = app.vault.getFiles().find((f) => f.path.startsWith('Margin/Walden (edited '));
+    const copy = app.vault.getFiles().find((f) => f.path.startsWith('Readside/Walden (edited '));
     expect(copy).toBeDefined();
     expect(await app.vault.read(copy!)).toBe('my own words');
     expect(Notice.messages.filter((m) => m.includes(copy!.basename))).toHaveLength(1);
@@ -281,7 +281,7 @@ describe('notebook mirror', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     for (const bad of ['.obsidian/plugins', 'Notes/.private', 42]) {
       const p = await setup({ mirrorFolder: bad });
-      expect(p.settings.mirrorFolder).toBe('Margin');
+      expect(p.settings.mirrorFolder).toBe('Readside');
       await highlight(p);
       await waitFor(() => expect(note()).not.toBeNull());
       p.unload();
@@ -301,7 +301,7 @@ describe('notebook mirror', () => {
     await highlight(p);
     await waitFor(() => expect(note()).not.toBeNull());
     // A note on record whose book is gone from the store (its file was removed outside Obsidian).
-    await p.mirrors.write('gone-book', 'Margin/Gone.md', 'old note');
+    await p.mirrors.write('gone-book', 'Readside/Gone.md', 'old note');
     const error = vi.spyOn(console, 'error');
     const run = vi.spyOn(p, 'writeMirror');
     p.settings.mirrorFolder = 'Reading';
@@ -333,18 +333,18 @@ describe('notebook mirror', () => {
     expect(modify).not.toHaveBeenCalled();
     expect(process).not.toHaveBeenCalled();
     expect(await app.vault.read(note()!)).toBe('typing in a split pane');
-    expect(app.vault.getFiles().some((f) => f.path.startsWith('Margin/Walden (edited '))).toBe(false);
+    expect(app.vault.getFiles().some((f) => f.path.startsWith('Readside/Walden (edited '))).toBe(false);
     expect(Notice.messages).toEqual([]);
     await backend().createThought({ bookId: id, body: 'A new thought' });
     await p.scheduler.flush(id);
     const md = await app.vault.read(note()!);
     expect(md).toContain('A new thought');
     expect(md).toContain('margin-progress: 0.8');
-    const copy = app.vault.getFiles().find((f) => f.path.startsWith('Margin/Walden (edited '));
+    const copy = app.vault.getFiles().find((f) => f.path.startsWith('Readside/Walden (edited '));
     expect(await app.vault.read(copy!)).toBe('typing in a split pane');
   });
 
-  it('an untouched note follows progress only when Margin has real news; then without a copy', async () => {
+  it('an untouched note follows progress only when Readside has real news; then without a copy', async () => {
     const p = await setup({}, 60_000);
     const id = p.store.bookIdForPath('Books/Walden.pdf')!;
     await highlight(p);
@@ -356,7 +356,7 @@ describe('notebook mirror', () => {
     await backend().createThought({ bookId: id, body: 'A new thought' });
     await p.scheduler.flush(id);
     expect(await app.vault.read(note()!)).toContain('margin-progress: 0.4');
-    expect(app.vault.getFiles().some((f) => f.path.startsWith('Margin/Walden (edited '))).toBe(false);
+    expect(app.vault.getFiles().some((f) => f.path.startsWith('Readside/Walden (edited '))).toBe(false);
     expect(Notice.messages).toEqual([]);
   });
 

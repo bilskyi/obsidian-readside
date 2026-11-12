@@ -102,7 +102,7 @@ afterEach(async () => {
 });
 
 describe('the pane menu', () => {
-  it('keeps Obsidian’s own items and adds the three Margin items, with lucide icons', async () => {
+  it('keeps Obsidian’s own items and adds the three Readside items, with lucide icons', async () => {
     const view = await openWalden(await setup());
     const items = paneMenu(view);
     expect(items.map((i) => i.title)).toEqual(['Close', "Open in Obsidian's viewer", 'Open notebook note', 'Copy link to this page']);
@@ -129,7 +129,7 @@ describe('the pane menu', () => {
     await new Promise((r) => setTimeout(r, 1200));
   }
 
-  it('with "Open PDFs in Margin" on (.pdf mapped to Margin), the viewer the user chose stays, however much later file-open fires', async () => {
+  it('with "Open PDFs in Readside" on (.pdf mapped to Readside), the viewer the user chose stays, however much later file-open fires', async () => {
     const p = await setup({ openPdfsInMargin: true });
     expect((app as unknown as { viewRegistry: { getTypeByExtension(e: string): string } }).viewRegistry.getTypeByExtension('pdf')).toBe(VIEW_TYPE);
     const view = await openWalden(p);
@@ -140,7 +140,7 @@ describe('the pane menu', () => {
     expect(leaf.view.getViewType()).toBe('pdf');
   });
 
-  it('.pdf mapped to Margin: a PDF leaf in Obsidian’s viewer is there by choice ("Open with"), so it is not taken over', async () => {
+  it('.pdf mapped to Readside: a PDF leaf in Obsidian’s viewer is there by choice ("Open with"), so it is not taken over', async () => {
     await setup({ openPdfsInMargin: true });
     const leaf = app.workspace.getLeaf(true);
     await leaf.setViewState({ type: 'pdf', state: { file: 'Books/Walden.pdf' }, active: true });
@@ -188,7 +188,7 @@ describe('the pane menu', () => {
     view.location.current = null;
     await act(async () => item(paneMenu(view), 'Copy link to this page').handler!());
     expect(writeText).not.toHaveBeenCalled();
-    expect(Notice.messages.at(-1)).toBe('Margin: the book is still opening, so there is no page to link to yet.');
+    expect(Notice.messages.at(-1)).toBe('Readside: the book is still opening, so there is no page to link to yet.');
   });
 
   it('while the book is still opening the view knows no page, so nothing is copied', async () => {
@@ -206,7 +206,7 @@ describe('the pane menu', () => {
     await waitFor(() => expect(view.location.current).not.toBeNull());
   });
 
-  it('"Copy link to this page" writes a Markdown obsidian://margin link to the page on screen, and says so', async () => {
+  it('"Copy link to this page" writes a Markdown obsidian://readside link to the page on screen, and says so', async () => {
     const view = await openWalden(await setup());
     const page3 = pdfLocation({ page: 3, start: 0, end: 0 });
     // A point on page 3 (the reader reports page-level locations; the link is to the page either way).
@@ -214,15 +214,15 @@ describe('the pane menu', () => {
     await act(async () => item(paneMenu(view), 'Copy link to this page').handler!());
     await waitFor(() => expect(Notice.messages.length).toBeGreaterThan(0));
     expect(writeText).toHaveBeenCalledWith(`[p. 3](${buildObsidianUrl('Books/Walden.pdf', page3)})`);
-    expect(Notice.messages.at(-1)).toBe('Margin: link to page 3 copied.');
+    expect(Notice.messages.at(-1)).toBe('Readside: link to page 3 copied.');
   });
 
-  it('a clipboard failure is a Notice from Margin, not a "copied"', async () => {
+  it('a clipboard failure is a Notice from Readside, not a "copied"', async () => {
     const view = await openWalden(await setup());
     writeText.mockRejectedValueOnce(new Error('denied'));
     await act(async () => item(paneMenu(view), 'Copy link to this page').handler!());
     await waitFor(() => expect(Notice.messages.length).toBeGreaterThan(0));
-    expect(Notice.messages.at(-1)).toBe("Margin couldn't copy the link: denied");
+    expect(Notice.messages.at(-1)).toBe("Readside couldn't copy the link: denied");
   });
 });
 
@@ -240,11 +240,11 @@ describe('the notebook note', () => {
     const p = await setup();
     const view = await openWalden(p);
     await highlight(p);
-    await waitFor(() => expect(app.vault.getFileByPath('Margin/Walden.md')).not.toBeNull());
+    await waitFor(() => expect(app.vault.getFileByPath('Readside/Walden.md')).not.toBeNull());
     const before = app.workspace.leaves.length;
     await act(async () => item(paneMenu(view), 'Open notebook note').handler!());
     await waitFor(() => expect(app.workspace.leaves.length).toBe(before + 1));
-    expect((newTabs()[0] as unknown as WorkspaceLeaf).openedFile?.path).toBe('Margin/Walden.md');
+    expect((newTabs()[0] as unknown as WorkspaceLeaf).openedFile?.path).toBe('Readside/Walden.md');
     expect(view.leaf.view).toBe(view);
   });
 
@@ -253,22 +253,22 @@ describe('the notebook note', () => {
     const other = app.vault.addBinary('Elsewhere/Walden.pdf', pdfBytes('another walden'));
     await openWalden(p);
     await highlight(p);
-    await waitFor(() => expect(app.vault.getFileByPath('Margin/Walden.md')).not.toBeNull());
+    await waitFor(() => expect(app.vault.getFileByPath('Readside/Walden.md')).not.toBeNull());
     const second = await openWalden(p, other);
     await highlight(p, 'Elsewhere/Walden.pdf');
-    await waitFor(() => expect(app.vault.getFileByPath('Margin/Walden (2).md')).not.toBeNull());
+    await waitFor(() => expect(app.vault.getFileByPath('Readside/Walden (2).md')).not.toBeNull());
     await act(async () => second.openNotebookNote());
-    expect((newTabs().at(-1) as unknown as WorkspaceLeaf).openedFile?.path).toBe('Margin/Walden (2).md');
+    expect((newTabs().at(-1) as unknown as WorkspaceLeaf).openedFile?.path).toBe('Readside/Walden (2).md');
   });
 
   it('none yet: a Notice says when it appears; notes off: a Notice says they are off in settings', async () => {
     const p = await setup();
     const view = await openWalden(p);
     await act(async () => view.openNotebookNote());
-    expect(Notice.messages.at(-1)).toBe('Margin: this book has no notebook note yet. It appears after your first highlight or thought.');
+    expect(Notice.messages.at(-1)).toBe('Readside: this book has no notebook note yet. It appears after your first highlight or thought.');
     p.settings.mirrorEnabled = false;
     await act(async () => view.openNotebookNote());
-    expect(Notice.messages.at(-1)).toBe('Margin: notebook notes are turned off in settings.');
+    expect(Notice.messages.at(-1)).toBe('Readside: notebook notes are turned off in settings.');
     expect(newTabs()).toEqual([]);
   });
 
@@ -276,10 +276,10 @@ describe('the notebook note', () => {
     const p = await setup();
     const view = await openWalden(p);
     await highlight(p);
-    await waitFor(() => expect(app.vault.getFileByPath('Margin/Walden.md')).not.toBeNull());
-    await app.vault.delete(app.vault.getFileByPath('Margin/Walden.md')!);
+    await waitFor(() => expect(app.vault.getFileByPath('Readside/Walden.md')).not.toBeNull());
+    await app.vault.delete(app.vault.getFileByPath('Readside/Walden.md')!);
     await act(async () => view.openNotebookNote());
-    expect(Notice.messages.at(-1)).toBe("Margin: the notebook note was moved or deleted; it's rewritten on your next change.");
+    expect(Notice.messages.at(-1)).toBe("Readside: the notebook note was moved or deleted; it's rewritten on your next change.");
     expect(newTabs()).toEqual([]);
   });
 
@@ -291,15 +291,15 @@ describe('the notebook note', () => {
     const view = await openWalden(p);
     await highlight(p);
     await tick();
-    expect(app.vault.getFileByPath('Margin/Walden.md')).toBeNull();
+    expect(app.vault.getFileByPath('Readside/Walden.md')).toBeNull();
     await act(async () => view.openNotebookNote());
-    expect(app.vault.getFileByPath('Margin/Walden.md')).not.toBeNull();
-    expect((newTabs().at(-1) as unknown as WorkspaceLeaf | undefined)?.openedFile?.path).toBe('Margin/Walden.md');
+    expect(app.vault.getFileByPath('Readside/Walden.md')).not.toBeNull();
+    expect((newTabs().at(-1) as unknown as WorkspaceLeaf | undefined)?.openedFile?.path).toBe('Readside/Walden.md');
     expect(Notice.messages.filter((m) => m.includes('no notebook note yet'))).toEqual([]);
     p.scheduler.dispose();
   });
 
-  it('the "Open notebook note" command is there only while a Margin view is active', async () => {
+  it('the "Open notebook note" command is there only while a Readside view is active', async () => {
     const p = await setup();
     const command = p.command('open-notebook-note');
     expect(command.name).toBe('Open notebook note');
@@ -339,7 +339,7 @@ describe('opening states in the plugin', () => {
     );
     await p.openInMargin(walden);
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain("Margin couldn't read this PDF; it may be damaged.");
+    expect(alert.textContent).toContain("Readside couldn't read this PDF; it may be damaged.");
     expect(alert.querySelector('pre')?.textContent).toBe('UnknownErrorException: Page dictionary kid reference points to wrong type of object.');
     const leaf = app.workspace.getLeavesOfType(VIEW_TYPE)[0];
     fireEvent.click(screen.getByRole('button', { name: "Open in Obsidian's viewer" }));
@@ -351,7 +351,7 @@ describe('opening states in the plugin', () => {
     app.vault.adapter.failOn('readBinary', 'Books/Walden.pdf');
     await plugin!.openInMargin(walden);
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain("Margin couldn't open Books/Walden.pdf.");
+    expect(alert.textContent).toContain("Readside couldn't open Books/Walden.pdf.");
     expect(alert.querySelector('summary')?.textContent).toBe('Details');
     expect(screen.getByRole('button', { name: "Open in Obsidian's viewer" })).toBeTruthy();
   });
@@ -448,7 +448,7 @@ describe('failure, retry and teardown', () => {
     const alert = await screen.findByRole('alert');
     const leaf = app.workspace.getLeavesOfType(VIEW_TYPE)[0];
     const view = leaf.view as MarginView;
-    expect(alert.textContent).toContain("Margin couldn't open Books/Walden.pdf.");
+    expect(alert.textContent).toContain("Readside couldn't open Books/Walden.pdf.");
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await screen.findByRole('heading', { name: 'Walden' });
     expect(screen.queryByRole('alert')).toBeNull();
@@ -487,15 +487,15 @@ describe('the first-run hint in the plugin', () => {
 describe('copy', () => {
   it('the ribbon’s tooltip names the shelf; the shelf’s picker says what it opens', async () => {
     const p = await setup();
-    expect(p.ribbonIcons[0].title).toBe('Open Margin shelf');
-    expect(p.command('open-shelf').name).toBe('Open Margin shelf');
+    expect(p.ribbonIcons[0].title).toBe('Open Readside shelf');
+    expect(p.command('open-shelf').name).toBe('Open Readside shelf');
     p.ribbonIcons[0].el.click();
     (await screen.findByRole('button', { name: 'Open a book…' })).click();
     await waitFor(() => expect(Modal.opened[0]).toBeInstanceOf(PdfPicker));
-    expect((Modal.opened[0] as PdfPicker & { placeholder: string }).placeholder).toBe('Open a book in Margin');
+    expect((Modal.opened[0] as PdfPicker & { placeholder: string }).placeholder).toBe('Open a book in Readside');
   });
 
-  it('every Notice the plugin source shows starts with "Margin"', async () => {
+  it('every Notice the plugin source shows starts with "Readside"', async () => {
     const { readdirSync, readFileSync } = await import('node:fs');
     const { join, resolve } = await import('node:path');
     const dir = resolve(process.cwd(), 'obsidian/src');
@@ -510,7 +510,7 @@ describe('copy', () => {
       }
     }
     expect(literals.length).toBeGreaterThan(8);
-    for (const text of literals) expect(text, text).toMatch(/^Margin\b/);
+    for (const text of literals) expect(text, text).toMatch(/^Readside\b/);
   });
 });
 
@@ -522,6 +522,6 @@ describe('copy link to this place: an epub location', () => {
     await waitFor(() => expect(Notice.messages.length).toBeGreaterThan(0));
     const section = epubLocation({ section: 4, start: 0, end: 0 });
     expect(writeText).toHaveBeenCalledWith(`[§ 4](${buildObsidianUrl('Books/Walden.pdf', section)})`);
-    expect(Notice.messages.at(-1)).toBe('Margin: link to § 4 copied.');
+    expect(Notice.messages.at(-1)).toBe('Readside: link to § 4 copied.');
   });
 });

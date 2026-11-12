@@ -1,10 +1,10 @@
 import { App, MemoryAdapter } from 'obsidian';
 
-export const ROOT = '.obsidian/plugins/margin-reader';
+export const ROOT = '.obsidian/plugins/readside';
 
 export const manifest = {
-  id: 'margin-reader',
-  name: 'Margin',
+  id: 'readside',
+  name: 'Readside',
   version: '0.1.0',
   minAppVersion: '1.8.0',
   description: 'test',

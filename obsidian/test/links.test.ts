@@ -4,15 +4,15 @@ import { buildObsidianUrl, linkLabel, markdownLink, parseMarginParams } from '..
 import { epubLocation, epubPoint } from '../../src/lib/location';
 
 describe('links', () => {
-  it('builds obsidian://margin with the vault path and the location JSON, safe inside a Markdown link', () => {
+  it('builds obsidian://readside with the vault path and the location JSON, safe inside a Markdown link', () => {
     const loc = pdfLocation({ page: 42, start: 3, end: 9 });
     const url = buildObsidianUrl('Books/My (draft).pdf', loc);
-    expect(url.startsWith('obsidian://margin?file=Books%2FMy%20%28draft%29.pdf&loc=')).toBe(true);
+    expect(url.startsWith('obsidian://readside?file=Books%2FMy%20%28draft%29.pdf&loc=')).toBe(true);
     expect(url).not.toMatch(/[()\s]/);
     const u = new URL(url);
     expect(u.searchParams.get('file')).toBe('Books/My (draft).pdf');
     expect(parseLocation(u.searchParams.get('loc'))).toEqual(loc);
-    expect(buildObsidianUrl('a.pdf', null)).toBe('obsidian://margin?file=a.pdf');
+    expect(buildObsidianUrl('a.pdf', null)).toBe('obsidian://readside?file=a.pdf');
   });
 
   it('parses the handler’s parameters; a bad loc still opens the file; no file is nothing', () => {

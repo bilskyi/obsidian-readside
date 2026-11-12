@@ -43,7 +43,7 @@ class RecWorker implements WorkerLike {
 describe('engineStartError', () => {
   it('says the engine could not start, with why; an abort or a shutdown is left alone', () => {
     expect(String(engineStartError(new Error('blocked')))).toBe(`Error: ${ENGINE_START_FAILED}: blocked; ${ENGINE_START_HINT}`);
-    expect(ENGINE_START_FAILED).toBe("Margin couldn't start the translation engine");
+    expect(ENGINE_START_FAILED).toBe("Readside couldn't start the translation engine");
     expect(ENGINE_START_HINT).toBe('update Obsidian or report this');
     const abort = new DOMException('x', 'AbortError');
     expect(engineStartError(abort)).toBe(abort);
