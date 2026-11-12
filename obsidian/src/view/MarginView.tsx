@@ -1,5 +1,5 @@
 import { FileView, Menu, Notice, Scope, type HoverParent, type HoverPopover, type TFile, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
-import { StrictMode, useEffect, useSyncExternalStore } from 'react';
+import { StrictMode, useLayoutEffect, useSyncExternalStore } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { flushAll, flushAllBounded } from '../../../src/features/notebook/editorRegistry';
 import {
@@ -145,7 +145,7 @@ function LiveStatus({ status }: { status: StatusText }) {
  */
 function Pending({ title, onShown }: { title: string; onShown: () => void }) {
   const shown = useShownAfter(true, OPENING_DELAY_MS);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (shown) onShown();
   }, [shown, onShown]);
   if (!shown) return null;

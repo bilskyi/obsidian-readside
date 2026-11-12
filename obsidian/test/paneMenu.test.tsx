@@ -324,10 +324,10 @@ describe('opening states in the plugin', () => {
     const view = leaf.view as MarginView;
     expect(view.contentEl.querySelector('.margin-app')).not.toBeNull();
     expect(view.contentEl.textContent).not.toContain('Opening…');
-    await new Promise((r) => setTimeout(r, OPENING_DELAY_MS + 50));
+    // Pending's delay starts in its effect, after the commit: a fixed real sleep could end first on a slow runner.
+    await waitFor(() => expect(view.contentEl.querySelector('.reader-state.is-opening')?.textContent).toContain('Opening…'));
     const state = view.contentEl.querySelector('.reader-state.is-opening');
     expect(state?.textContent).toContain('Walden');
-    expect(state?.textContent).toContain('Opening…');
     release();
     await screen.findByRole('heading', { name: 'Walden' });
   });
@@ -374,8 +374,9 @@ describe('the opening status and hand-over', () => {
     const el = region(view)[0];
     expect(el.classList.contains('visually-hidden')).toBe(true);
     expect(el.textContent).toBe('');
-    await act(async () => new Promise((r) => setTimeout(r, OPENING_DELAY_MS + 50)));
-    expect(el.textContent).toBe('Opening Walden…');
+    // Pending's delay is timed from its effect, after the commit: on a slow runner it can start late, so
+    // a fixed real sleep past OPENING_DELAY_MS could end first.
+    await waitFor(() => expect(el.textContent).toBe('Opening Walden…'));
     // The visual state is hidden from screen readers: the region speaks for it.
     expect(view.contentEl.querySelector('.reader-state.is-opening')?.getAttribute('aria-hidden')).toBe('true');
     release();
@@ -403,6 +404,10 @@ describe('the opening status and hand-over', () => {
     const view = leaf.view as MarginView;
     const opening = () => !!view.contentEl.querySelector('.reader-state.is-opening') && view.contentEl.textContent!.includes('Opening…');
     await waitFor(() => expect(opening()).toBe(true));
+    // Pending tells the view it is on screen from an effect, after the commit that shows it; the status
+    // region's text is set in that same call. Released before that, the reader would mount without the
+    // hand-over (its own 200 ms delay): on a slow runner the store can win that race.
+    await waitFor(() => expect(region(view)[0].textContent).toBe('Opening Walden…'));
     const title = view.contentEl.querySelector('.reader-state-title')!;
     // From here until the book opens, every DOM change must leave "Opening…" on screen.
     let gaps = 0;

@@ -62,6 +62,9 @@ afterEach(async () => {
     await app.workspace.viewsClosing;
   }
   plugin = null;
+  // A failed assertion skips a test's own mockRestore; a console spy left behind would carry its calls
+  // into the next test's "no errors" check.
+  vi.restoreAllMocks();
   setBackend(null);
   bodySaves.resetBodySavesForTests();
   document.body.replaceChildren();
@@ -202,6 +205,22 @@ describe('notebook mirror', () => {
     return state;
   };
 
+  /**
+   * Waits in real time, with the fake clock standing still, until `done()`. The write path hashes with
+   * crypto.subtle, which settles on Node's thread pool, not on a fake timer or a microtask: advancing
+   * fake time does not wait for it, so on a loaded machine the bound could run out before the write
+   * starts. The fake clock does not move while this waits, so what it measures stays exact; a step that
+   * needs more fake time never comes, and the wait fails after `ms` of real time.
+   */
+  const realSetTimeout = globalThis.setTimeout;
+  async function untilReal(done: () => boolean, what: string, ms = 2000) {
+    // Counted in real sleeps: Date and performance are faked too.
+    for (let waited = 0; !done(); waited += 20) {
+      if (waited >= ms) throw new Error(`still waiting, with the fake clock stopped: ${what}`);
+      await new Promise((r) => realSetTimeout(r, 20));
+    }
+  }
+
   it('a stuck note write with the view open is waited for once at unload: one bound, under the handoff cap', async () => {
     const p = await setup({}, 60_000);
     const bound = 300;
@@ -215,11 +234,13 @@ describe('notebook mirror', () => {
       p.unload();
       plugin = null;
       const unloading = track(p.unloading);
+      // At fake time 0: the released view's host.closed has reached the stuck vault.process.
+      await untilReal(() => stuck.mock.calls.length > 0, 'the view close to start the note write');
       await vi.advanceTimersByTimeAsync(bound - 1);
       expect(unloading.settled).toBe(false);
       // The store's own timers (its write coalescing) fit well inside half a bound.
       await vi.advanceTimersByTimeAsync(bound / 2);
-      expect(unloading.settled).toBe(true);
+      await untilReal(() => unloading.settled, 'unload to settle within 1.5 × bound of fake time');
     } finally {
       vi.useRealTimers();
     }
@@ -234,16 +255,17 @@ describe('notebook mirror', () => {
     const p = await setup({}, 60_000);
     const bound = 300;
     p.mirrorFlushTimeoutMs = bound;
-    await pendingReplace(p);
+    const stuck = await pendingReplace(p);
     vi.useFakeTimers();
     try {
       const tasks = new Tasks();
       app.workspace.trigger('quit', tasks);
       const quitting = track(tasks.run());
+      await untilReal(() => stuck.mock.calls.length > 0, 'the quit task to start the note write');
       await vi.advanceTimersByTimeAsync(bound - 1);
       expect(quitting.settled).toBe(false);
       await vi.advanceTimersByTimeAsync(bound / 2);
-      expect(quitting.settled).toBe(true);
+      await untilReal(() => quitting.settled, 'the quit task to settle within 1.5 × bound of fake time');
     } finally {
       vi.useRealTimers();
     }
@@ -300,6 +322,10 @@ describe('notebook mirror', () => {
     const p = await setup();
     await highlight(p);
     await waitFor(() => expect(note()).not.toBeNull());
+    // Closed first, so nothing renders while console.error is watched: an open reader re-renders on its own
+    // schedule (the backlinks refresh BACKLINK_DELAY_MS after the note lands, the reader's effects), outside
+    // act, and on a slow machine that lands inside the check. Walden stays on record (mirrors.json).
+    await closeView();
     // A note on record whose book is gone from the store (its file was removed outside Obsidian).
     await p.mirrors.write('gone-book', 'Readside/Gone.md', 'old note');
     const error = vi.spyOn(console, 'error');
