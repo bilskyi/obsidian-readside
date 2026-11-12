@@ -54,6 +54,7 @@
 /* ---------- Panel ---------- */
 .notebook {
   flex: none;
+  width: var(--panel-width);
   display: flex;
   flex-direction: column;
   min-height: 0;

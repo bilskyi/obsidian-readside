@@ -1,4 +1,4 @@
-import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { coarsePointer } from '../../lib/floating';
 import { labelText, thoughtLabel } from '../../lib/labels';
 import { parseLocation, sameSpot } from '../../lib/location';
@@ -105,7 +105,7 @@ export function NotebookPanel(props: NotebookPanelProps) {
   const actions: EntryActions = props;
 
   return (
-    <aside className="notebook" aria-label="Notebook" style={{ width }}>
+    <aside className="notebook" aria-label="Notebook" style={{ '--panel-width': `${width}px` } as CSSProperties}>
       <header className="notebook-bar">
         <h2 className="notebook-title">Notebook</h2>
         <span className="notebook-count">{count === 1 ? '1 entry' : `${count} entries`}</span>

@@ -1,6 +1,7 @@
 /* Contents sidebar (M4 spec §5.1, §6). Tokens only; light and dark follow the system. */
 .contents {
   flex: none;
+  width: var(--panel-width);
   display: flex;
   flex-direction: column;
   min-height: 0;

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { placeNameFor } from '../../../lib/location';
 import { countBySection, sectionPath } from '../../../lib/outline';
 import type { Location, OutlineEntry } from '../../../lib/types';
@@ -136,7 +136,7 @@ export function ContentsPanel({
   const currentEntry = path.length ? path[path.length - 1] : null;
 
   return (
-    <nav ref={navRef} className="contents" aria-label="Contents" style={{ width }}>
+    <nav ref={navRef} className="contents" aria-label="Contents" style={{ '--panel-width': `${width}px` } as CSSProperties}>
       <header className="contents-bar">
         <h2 className="contents-title">Contents</h2>
       </header>
