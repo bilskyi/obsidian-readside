@@ -146,8 +146,9 @@
   width: 100%;
   min-width: 0;
 }
-/* The cover menu: over the cover's top-right corner, shown on hover or focus (always where there is no hover). */
-.shelf-card-more {
+/* The cover menu: over the cover's top-right corner, shown on hover or focus (always where there is no hover).
+   button.: Obsidian's mobile button padding is more specific than a plain class, and would hide the icon. */
+.shelf-card-wrap button.shelf-card-more {
   position: absolute;
   top: 22px;
   right: 22px;
