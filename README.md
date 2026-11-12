@@ -7,8 +7,9 @@ book's notebook is also kept as a Markdown note in your vault, with links back t
 The plugin's id is `readside`. It used to be called Margin (id `margin-reader`); see
 [Coming from Margin](#coming-from-margin).
 
-> Screenshot: to be added (`docs/screenshot.png`, a book open with highlights, margin notes and the
-> notebook panel).
+![A book open in Readside with highlights in four colours, a note, a margin thought and the notebook panel](docs/reader.png)
+
+![The Readside shelf: books with covers and progress, recent thoughts](docs/shelf.png)
 
 ## Install
 
