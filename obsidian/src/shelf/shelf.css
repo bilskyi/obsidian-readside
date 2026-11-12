@@ -1,0 +1,474 @@
+/* The shelf (plugin only). Scoped under .margin-app at build time; colours are Margin's tokens, which bridge.css maps to the Obsidian theme. */
+.shelf {
+  box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto;
+  padding: 32px clamp(16px, 4vw, 48px) 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  background: var(--window);
+  color: var(--text);
+  font-size: var(--fs-body);
+}
+.shelf *,
+.shelf *::before,
+.shelf *::after {
+  box-sizing: border-box;
+}
+
+.shelf-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.shelf-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+.shelf-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-right: auto;
+  min-width: 0;
+}
+.shelf-title {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--text);
+}
+.shelf-sub {
+  margin: 0;
+  color: var(--text-2);
+}
+.shelf-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.shelf-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 260px;
+  max-width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--separator);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-2);
+}
+.shelf-search:focus-within {
+  box-shadow: var(--focus-ring);
+  outline: 2px solid transparent;
+}
+.shelf-search-label {
+  display: flex;
+  align-items: center;
+}
+.shelf-search .shelf-search-input,
+.shelf-search .shelf-search-input:hover,
+.shelf-search .shelf-search-input:focus,
+.shelf-search .shelf-search-input:focus-visible {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  color: var(--text);
+  font: inherit;
+}
+
+.shelf-button {
+  padding: 7px 12px;
+  border-radius: 7px;
+  background: var(--hover);
+  color: var(--text);
+  cursor: pointer;
+}
+.shelf-button:hover {
+  background: var(--pressed);
+}
+.shelf-button-primary {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+.shelf-button-primary:hover {
+  background: color-mix(in srgb, var(--accent-fill) 88%, black);
+}
+.shelf-button-quiet {
+  background: transparent;
+  border: 1px solid var(--separator);
+  color: var(--text-2);
+}
+.shelf-button:focus-visible,
+.shelf-card:focus-visible,
+.shelf-card-more:focus-visible,
+.shelf-recent-item:focus-visible,
+.shelf-result:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: 2px solid transparent;
+}
+
+/* ---- the grid ---- */
+.shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shelf-grid > li {
+  display: flex;
+  min-width: 0;
+}
+.shelf-card-wrap {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+/* The cover menu: over the cover's top-right corner, shown on hover or focus (always where there is no hover). */
+.shelf-card-more {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text);
+  box-shadow: 0 1px 2px color-mix(in srgb, black 18%, transparent);
+  cursor: pointer;
+  opacity: 0;
+}
+.shelf-card-wrap:hover .shelf-card-more,
+.shelf-card-wrap:focus-within .shelf-card-more {
+  opacity: 1;
+}
+.shelf-card-more:hover {
+  background: var(--surface);
+}
+@media (hover: none) {
+  .shelf-card-more {
+    opacity: 1;
+  }
+}
+.shelf-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--separator);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.shelf-card:hover {
+  background: color-mix(in srgb, var(--surface) 94%, var(--text));
+}
+.shelf-card.is-missing {
+  cursor: default;
+}
+/* Only the picture dims: "File missing" stays readable text at full contrast. */
+.shelf-card.is-missing .shelf-cover,
+.shelf-card.is-missing .shelf-progress {
+  opacity: 0.55;
+}
+.shelf-missing {
+  color: var(--text);
+  font-weight: 600;
+}
+.shelf-card.is-missing:hover {
+  background: var(--surface);
+}
+.shelf-cover {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 150px;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--cover);
+  overflow: hidden;
+}
+.shelf-cover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+/* A picture keeps its title legible on a dark scrim at the foot: the same light serif as the colour tile, in either theme. */
+.shelf-cover.has-image::after {
+  content: '';
+  position: absolute;
+  inset: 25% 0 0;
+  background: linear-gradient(to bottom, transparent, rgb(12 12 14 / 0.62) 35%, rgb(12 12 14 / 0.85));
+  pointer-events: none;
+}
+.shelf-cover.has-image .shelf-cover-title {
+  position: relative;
+  z-index: 1;
+  -webkit-line-clamp: 3;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.45);
+}
+.shelf-card.is-missing .shelf-cover-img {
+  filter: grayscale(0.7);
+}
+.shelf-cover-title {
+  font-family: 'Iowan Old Style', 'Charter', Georgia, serif;
+  font-size: 16px;
+  line-height: 1.25;
+  color: #fbfaf7;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.shelf-progress {
+  position: relative;
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--separator);
+  overflow: hidden;
+}
+.shelf-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.shelf-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+  font-size: var(--fs-meta);
+  color: var(--text-2);
+}
+
+/* ---- below the grid ---- */
+.shelf-lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+  gap: 20px;
+}
+@media (max-width: 720px) {
+  .shelf-lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.shelf-panel,
+.shelf-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--separator);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.shelf-panel-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.shelf-quiet {
+  margin: 0;
+  color: var(--text-2);
+}
+.shelf-meta {
+  display: block;
+  font-size: var(--fs-meta);
+  color: var(--text-2);
+}
+.shelf-recent,
+.shelf-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shelf-recent-item,
+.shelf-result {
+  display: grid;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+}
+.shelf-recent-item {
+  grid-template-columns: 4px minmax(0, 1fr);
+  gap: 12px;
+}
+.shelf-recent-item:hover,
+.shelf-result:hover {
+  background: var(--hover);
+}
+.shelf-recent-bar {
+  border-radius: 2px;
+  background: var(--bar);
+}
+.shelf-recent-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.shelf-recent-text,
+.shelf-result-text {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.shelf-quote {
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+  font-family: 'Iowan Old Style', 'Charter', Georgia, serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.shelf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+/* ---- search results ---- */
+.shelf-result-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.shelf-result-book {
+  margin: 8px 0 0;
+  font-family: 'Iowan Old Style', 'Charter', Georgia, serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.shelf-result-text mark {
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--hl-yellow) 45%, transparent);
+  color: inherit;
+}
+
+.shelf-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 420px;
+  margin: 15vh auto 0;
+}
+.shelf-empty-text {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-row);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shelf-card-more {
+    transition: opacity var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  }
+  .shelf-card,
+  .shelf-button,
+  .shelf-recent-item,
+  .shelf-result {
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+}
+
+@media (forced-colors: active) {
+  .shelf-card,
+  .shelf-panel,
+  .shelf-results,
+  .shelf-search,
+  .shelf-button {
+    border: 1px solid CanvasText;
+  }
+  .shelf-card.is-missing {
+    border-style: dashed;
+    color: GrayText;
+  }
+  .shelf-cover {
+    border: 1px solid CanvasText;
+  }
+  .shelf-cover-title {
+    color: CanvasText;
+  }
+  /* No scrim: the title sits on a plain system background over the picture. */
+  .shelf-cover.has-image::after {
+    display: none;
+  }
+  .shelf-cover.has-image .shelf-cover-title {
+    padding: 2px 4px;
+    background: Canvas;
+    text-shadow: none;
+  }
+  .shelf-card-more {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+    opacity: 1;
+  }
+  .shelf-progress {
+    border: 1px solid CanvasText;
+  }
+  .shelf-progress-fill {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  .shelf-recent-bar {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+  .shelf-result-text mark {
+    forced-color-adjust: none;
+    background: Mark;
+    color: MarkText;
+  }
+}

@@ -1,0 +1,544 @@
+/* Marginalia (M4 spec §5.2, §6): thoughts written in the page margin beside their line, tied to their
+   spot by a drawn thread. App.css tokens only; light and dark follow the system. Everything here lives in
+   the renderer's .pdf-margin layer inside .pdf-scroller: positions are the scroller's content
+   coordinates, and the notes scroll with the pages. */
+
+/* ---------- Margin note ---------- */
+.margin-note {
+  --note-accent: var(--ink);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--margin-w, 240px);
+  padding: 6px 8px 7px 12px;
+  color: var(--text);
+  background: var(--note-surface);
+  border-radius: 8px;
+  box-shadow: var(--note-shadow);
+  transition:
+    transform var(--dur-slow) var(--ease-out),
+    translate var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+/* The spine: the highlight's colour as ink, or blue ink for a pin. */
+.margin-note::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--note-accent);
+}
+.note-yellow { --note-accent: var(--hl-yellow-ink); }
+.note-green { --note-accent: var(--hl-green-ink); }
+.note-blue { --note-accent: var(--hl-blue-ink); }
+.note-pink { --note-accent: var(--hl-pink-ink); }
+.note-purple { --note-accent: var(--hl-purple-ink); }
+.note-pin { --note-accent: var(--ink); }
+
+/* Focus lifts the note off the desk; the column then sits it exactly at its line. */
+.margin-note.is-focused {
+  z-index: 2;
+  translate: -3px 0;
+  box-shadow: var(--note-shadow-lift);
+}
+/* A thought written moments ago slides in from the margin's outer edge. */
+.margin-note.is-new { animation: note-in var(--dur-slow) var(--ease-spring) backwards; }
+@keyframes note-in {
+  from { opacity: 0; translate: 16px 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.margin-note-bar { display: flex; align-items: flex-start; gap: 2px; min-height: 22px; }
+.margin-note-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  margin-left: -4px;
+  padding: 1px 4px;
+  border-radius: 5px;
+  text-align: left;
+}
+.margin-note-label:hover { background: var(--hover); }
+.margin-note .thought-label-custom { color: var(--note-ink); }
+.margin-note .nb-label-field { margin: 1px 0; }
+.margin-note .nb-menu-wrap { position: relative; top: auto; right: auto; flex: none; margin-right: -4px; }
+.margin-note:hover .nb-menu-btn,
+.margin-note.is-focused .nb-menu-btn { opacity: 1; }
+
+/* The body in blue ink, three lines until the note has focus. */
+.margin-note .thought-editor { margin: 2px -4px 0; padding: 1px 4px; }
+.margin-note .thought-editor .cm-content { color: var(--note-ink); }
+.margin-note:not(.is-focused) .thought-editor-slot {
+  max-height: calc(4.5em + 8px);
+  overflow: hidden;
+}
+.margin-note:not(.is-focused) .thought-editor-slot[data-clipped] {
+  -webkit-mask-image: linear-gradient(#000 62%, transparent);
+  mask-image: linear-gradient(#000 62%, transparent);
+}
+.margin-note .thought-preview {
+  width: calc(100% + 8px);
+  margin: 2px -4px 0;
+  color: var(--note-ink);
+  -webkit-line-clamp: 3;
+}
+.margin-note .thought-preview-hint { background: linear-gradient(90deg, transparent, var(--note-surface) 8px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .margin-note { transition: none; }
+  .margin-note.is-new { animation: none; }
+}
+
+/* ---------- Column ---------- */
+.margin-col {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+/* A faint ink-tinted strip down the desk: the margin you write in. */
+.margin-band {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--margin-w) + 16px);
+  border-radius: 12px;
+  background: var(--margin-bg);
+  pointer-events: none;
+  /* Best effort: meant to stop a selection dragged from the page toward the margin from running on through
+     the later pages. The band is pointer-events: none, so WKWebView may never hit-test it; a manual check
+     in the app is pending. Only the band: the notes' editors and previews stay selectable. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Right after a zoom or re-fit the notes jump with the pages instead of gliding after them. */
+.margin-col[data-instant] .margin-note { transition: none; }
+
+/* ---------- First run: a quiet hint at the top of the empty margin ---------- */
+.margin-hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--margin-w);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 2px 4px;
+  font-size: var(--fs-meta);
+  font-style: normal;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.margin-hint-text { margin: 0; }
+.margin-hint-dismiss {
+  margin-left: -4px;
+  padding: 1px 4px;
+  border-radius: 5px;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--note-ink);
+}
+.margin-hint-dismiss:hover { background: var(--hover); }
+.margin-hint-dismiss:active { background: var(--pressed); }
+/* Forced colors: the muted text could fade into the desk; an edge and system text keep it visible. */
+@media (forced-colors: active) {
+  .margin-hint { border: 1px solid CanvasText; color: CanvasText; background: Canvas; }
+  .margin-hint-dismiss { border: 1px solid ButtonText; color: ButtonText; }
+}
+
+/* ---------- Threads: drawn from each note to its spot ---------- */
+.margin-threads {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.margin-thread { --thread-c: var(--pencil); }
+.thread-yellow { --thread-c: var(--hl-yellow-ink); }
+.thread-green { --thread-c: var(--hl-green-ink); }
+.thread-blue { --thread-c: var(--hl-blue-ink); }
+.thread-pink { --thread-c: var(--hl-pink-ink); }
+.thread-purple { --thread-c: var(--hl-purple-ink); }
+.margin-thread path {
+  fill: none;
+  stroke: var(--thread-c);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  /* pathLength="1": one dash the length of the whole path, so the offset animates the drawing */
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  opacity: 0.5;
+  transition:
+    opacity var(--dur-med) var(--ease-out),
+    stroke-width var(--dur-med) var(--ease-out);
+}
+.margin-thread.is-hot path {
+  opacity: 1;
+  stroke-width: 1.75;
+  animation: thread-draw var(--dur-thread) var(--ease-out);
+}
+.margin-thread.is-new path {
+  opacity: 1;
+  animation: thread-draw var(--dur-thread) var(--ease-out) backwards;
+}
+/* Its page is re-rendering (zoom, pinch): the spot is estimated, so the thread waits faintly. */
+.margin-thread.is-estimated path { opacity: 0.2; }
+@keyframes thread-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+/* The spot: a dot in the thread's colour; a pin is a slightly larger drop of blue ink. */
+.margin-pin {
+  fill: var(--thread-c);
+  opacity: 0.85;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.thread-pin .margin-pin { fill: var(--ink); }
+.margin-thread.is-new .margin-pin { animation: pin-drop var(--dur-slow) var(--ease-spring) backwards; }
+@keyframes pin-drop {
+  from { opacity: 0; transform: translateY(-10px) scale(0.4); }
+  to { opacity: 0.85; transform: none; }
+}
+
+/* Reduced motion: no draw-in and no drop; the thread and its pin are simply there, drawn in full. */
+@media (prefers-reduced-motion: reduce) {
+  .margin-thread path { transition: none; }
+  .margin-thread.is-hot path,
+  .margin-thread.is-new path,
+  .margin-thread.is-new .margin-pin { animation: none; }
+}
+
+/* ---------- The margin "+": a drop of ink at the line under the pointer ---------- */
+.margin-plus {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--note-surface);
+  background: var(--ink);
+  box-shadow: 0 0 0 2px var(--note-surface), var(--shadow-sm);
+  transition: transform 90ms var(--ease-out); /* snaps line to line */
+  animation: plus-in var(--dur-fast) var(--ease-out);
+}
+.margin-plus:hover { filter: brightness(1.12); }
+.margin-plus:active { filter: brightness(0.92); }
+/* translate, not scale: a scale would also scale the transform that positions the "+". */
+@keyframes plus-in {
+  from { opacity: 0; translate: -6px 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .margin-plus { transition: none; animation: none; }
+}
+
+/* Forced colors: the ink fill and its ring are dropped, so the "+" keeps a system-coloured outline. */
+@media (forced-colors: active) {
+  .margin-plus {
+    forced-color-adjust: none;
+    color: ButtonText;
+    background: ButtonFace;
+    border: 1px solid ButtonText;
+  }
+}
+
+/* ---------- Narrow windows: one-line tabs, and the open tab's note as a floating card ---------- */
+.margin-tab {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--margin-w, 120px);
+  height: var(--tab-h, 24px);
+  padding: 0 8px 0 10px;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  line-height: var(--tab-h, 24px);
+  color: var(--note-ink);
+  text-align: left;
+  background: var(--note-surface);
+  border-radius: 0 6px 6px 0;
+  box-shadow: var(--note-shadow);
+  transition:
+    transform var(--dur-slow) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+/* The same spine as a note: the highlight's colour as ink (the tab wears .note-{colour}), or blue ink for a
+   pin (.note-pin). --note-accent is never set on .margin-tab itself: a rule here, after the colour classes,
+   would paint every spine blue. */
+.margin-tab::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--note-accent, var(--ink));
+}
+.margin-tab-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.margin-tab:hover { background: color-mix(in srgb, var(--ink) 8%, var(--note-surface)); }
+.margin-tab.is-open { background: color-mix(in srgb, var(--ink) 15%, var(--note-surface)); }
+.margin-tab.is-new { animation: note-in var(--dur-slow) var(--ease-spring) backwards; }
+.margin-col[data-instant] .margin-tab { transition: none; }
+/* The card floats over the page beside its tab (left of it, never covering it), lifted above the tabs and
+   the margin "+". The column places it exactly; focus doesn't nudge it like a note. */
+.margin-note.margin-card {
+  z-index: 4;
+  width: var(--card-w, 280px);
+  box-shadow: var(--note-shadow-lift);
+  animation: card-in var(--dur-med) var(--ease-out);
+}
+.margin-note.margin-card.is-focused { translate: none; }
+@keyframes card-in {
+  from { opacity: 0; translate: 0 -6px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .margin-tab { transition: none; }
+  .margin-tab.is-new,
+  .margin-note.margin-card { animation: none; }
+}
+
+/* Forced colors: the surfaces and shadows are dropped, so tabs and the card keep a system-coloured edge. */
+@media (forced-colors: active) {
+  .margin-tab { border: 1px solid ButtonText; }
+  .margin-tab.is-open { border-width: 2px; }
+  .margin-note.margin-card { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+  .margin-note { border: 1px solid CanvasText; }
+  .margin-note::before,
+  .margin-tab::before { background: CanvasText; }
+  .margin-note.is-focused,
+  .margin-tab.is-open { outline: 2px solid Highlight; }
+  .margin-thread path { stroke: CanvasText; opacity: 1; }
+  .margin-thread.is-hot path { stroke: Highlight; }
+  .margin-pin,
+  .thread-pin .margin-pin { fill: CanvasText; }
+}
+
+/* ---------- Backlinks: notes elsewhere that link to this place ---------- */
+/* A quiet chip, not a note: no surface or spine, just a hairline and the count, stacked with the notes. */
+.margin-backlink {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px 0 7px;
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--text-2);
+  background: transparent;
+  border-radius: 11px;
+  box-shadow: inset 0 0 0 0.5px var(--separator);
+  transition:
+    transform var(--dur-slow) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+.margin-backlink-glyph { color: var(--ink); }
+.margin-backlink:hover,
+.margin-backlink[aria-expanded='true'] { color: var(--text); background: var(--hover); }
+.margin-col[data-instant] .margin-backlink { transition: none; }
+
+/* The list of linking notes, lifted over the notes and the page. */
+.margin-backlink-pop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: var(--card-w, 280px);
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px;
+  color: var(--text);
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: var(--note-shadow-lift);
+  animation: card-in var(--dur-med) var(--ease-out);
+}
+.margin-backlink-list { margin: 0; padding: 0; list-style: none; }
+.margin-backlink-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 8px;
+  text-align: left;
+  border-radius: 5px;
+}
+.margin-backlink-item:hover,
+.margin-backlink-item:focus-visible { background: var(--hover); }
+.margin-backlink-title { font-size: var(--fs-row); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.margin-backlink-snippet {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: var(--fs-meta);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .margin-backlink { transition: none; }
+  .margin-backlink-pop { animation: none; }
+}
+
+@media (forced-colors: active) {
+  .margin-backlink { border: 1px solid ButtonText; color: ButtonText; }
+  .margin-backlink-glyph { color: inherit; }
+  .margin-backlink[aria-expanded='true'] { outline: 2px solid Highlight; }
+  .margin-backlink-pop { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+  .margin-backlink-item:hover,
+  .margin-backlink-item:focus-visible { outline: 2px solid Highlight; }
+  .margin-backlink-snippet { color: CanvasText; }
+}
+
+/* ---------- Focus mode: each thought as an 8 px dot at its line; hover or focus shows its card ---------- */
+.margin-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--margin-w, 24px); /* a 24 px target (WCAG 2.5.8) */
+  height: var(--margin-w, 24px);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+.margin-dot-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  /* The highlight's ink (.note-{colour} on the button), or blue ink for a pin. */
+  background: var(--note-accent, var(--ink));
+  opacity: 0.7;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.margin-dot:hover .margin-dot-mark,
+.margin-dot.is-open .margin-dot-mark {
+  opacity: 1;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--note-accent, var(--ink)) 22%, transparent);
+}
+.margin-dot:focus-visible { outline: 2px solid transparent; box-shadow: var(--focus-ring); }
+.margin-dot.is-new { animation: note-in var(--dur-slow) var(--ease-spring) backwards; }
+.margin-col[data-instant] .margin-dot { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .margin-dot,
+  .margin-dot-mark { transition: none; }
+  .margin-dot.is-new { animation: none; }
+}
+/* Forced colors: system colours replace the ink, so the dot gets an edge and a filled mark. */
+@media (forced-colors: active) {
+  .margin-dot { border: 1px solid ButtonText; }
+  .margin-dot-mark { background: ButtonText; opacity: 1; }
+  .margin-dot.is-open { outline: 2px solid Highlight; }
+}
+
+/* ---------- Adding a thought: a guide at the line, the label, the keyboard way in, the arrival pulse ---------- */
+/* A hairline across the column at the line under the pointer: where a click puts the thought. */
+.margin-guide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--ink) 35%, transparent);
+  pointer-events: none;
+  animation: guide-in var(--dur-fast) var(--ease-out);
+}
+.margin-plus-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--note-ink);
+  background: var(--note-surface);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  animation: guide-in var(--dur-fast) var(--ease-out);
+}
+@keyframes guide-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* Reachable by Tab, out of sight until then; with focus it shows at the column's right edge, near the top of the view. */
+.margin-add-here {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  translate: -100% 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--note-surface);
+  background: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+.margin-add-here:not([data-shown]) {
+  clip-path: inset(50%);
+  opacity: 0;
+}
+.margin-add-here:focus-visible { box-shadow: var(--focus-ring); }
+/* Arrival: a ring of ink that fades, once. The slide-in (is-new) stays the note's own animation. */
+.margin-note.is-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 55%, transparent);
+  opacity: 0;
+  animation: note-pulse 1100ms var(--ease-out);
+}
+@keyframes note-pulse {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .margin-guide,
+  .margin-plus-label { animation: none; }
+  /* No motion: the ring is simply there while the thought is new. */
+  .margin-note.is-pulse::after { animation: none; opacity: 1; }
+}
+@media (forced-colors: active) {
+  .margin-guide { border-top-color: CanvasText; }
+  .margin-plus-label { border: 1px solid CanvasText; color: CanvasText; background: Canvas; }
+  .margin-add-here { forced-color-adjust: none; border: 1px solid ButtonText; color: ButtonText; background: ButtonFace; }
+  .margin-note.is-pulse::after { box-shadow: none; outline: 2px solid Highlight; opacity: 1; animation: none; }
+}

@@ -1,0 +1,98 @@
+/* Focus mode ("D · Marginalia"): the page alone on a darker desk, the thoughts as dots, and one floating pill
+   for pages, progress, zoom and a new thought. App.css tokens only, so light and dark follow the system. */
+
+/* The desk deepens around the page while focused. */
+.reader[data-focus] .pdf-scroller { background: color-mix(in srgb, var(--desk) 82%, #000); }
+
+/* Toasts rise above the pill instead of covering it. */
+.reader[data-focus] .toasts { bottom: 72px; }
+
+/* ---------- The pill: bottom centre of the reading column ---------- */
+/* Its area spans the column's bottom (16 px gutters) and is the container the narrow pill measures; it
+   lets the pointer through to the page except over the pill. */
+.focus-pill-area {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 18px;
+  z-index: 6; /* over the pages, the margin and its cards; under popovers and toasts */
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  container: margin-focus-pill / inline-size;
+}
+.focus-pill {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 4px 6px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border-radius: 999px;
+  box-shadow: var(--toast-shadow);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  opacity: 1;
+  transition: opacity var(--dur-med) var(--ease-out);
+}
+/* Faded while reading. Still focusable: Tab into it and it comes back. */
+.focus-pill[data-faded] {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: var(--dur-slow);
+}
+.focus-pill .page-nav { margin-left: 0; padding-left: 0; border-left: 0; }
+.focus-pill-sep { flex: none; width: 1px; height: 18px; margin: 0 4px; background: var(--separator); }
+
+.focus-progress {
+  flex: none;
+  position: relative;
+  width: 120px;
+  height: 4px;
+  margin: 0 6px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--separator);
+}
+.focus-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+.focus-thought {
+  margin-left: 4px;
+  padding: 4px 12px 4px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: var(--window); /* light text on light-mode ink, dark text on dark-mode ink: both over 5:1 */
+  background: var(--ink);
+}
+.focus-thought:hover { background: color-mix(in srgb, var(--ink) 88%, var(--text)); }
+.focus-thought:active { background: color-mix(in srgb, var(--ink) 78%, var(--text)); }
+.focus-thought:disabled { opacity: 0.4; background: var(--ink); }
+.focus-exit { border-radius: 50%; color: var(--text-2); }
+
+/* A narrow pane: page nav, the zoom value, + Thought and × only. */
+@container margin-focus-pill (max-width: 520px) {
+  .focus-progress,
+  .focus-pill-sep-progress,
+  .focus-pill .zoom-step { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Shows and hides at once. */
+  .focus-pill,
+  .focus-pill[data-faded] { transition: none; }
+}
+/* Forced colors: the translucent surface and the shadow vanish; edges keep the pill and its parts visible. */
+@media (forced-colors: active) {
+  .focus-pill { border: 1px solid CanvasText; background: Canvas; }
+  .focus-pill-sep { background: CanvasText; }
+  .focus-progress { border: 1px solid CanvasText; background: Canvas; }
+  .focus-progress-fill { background: Highlight; }
+  .focus-thought { border: 1px solid ButtonText; }
+}

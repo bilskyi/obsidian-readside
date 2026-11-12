@@ -1,0 +1,45 @@
+{
+  "name": "obsidian-margin-reader",
+  "version": "0.1.0",
+  "description": "Read PDFs and EPUBs with highlights, margin notes and a notebook kept as a note in your vault. Translate text offline with downloadable language models.",
+  "author": "bilskyi",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "scripts": {
+    "build": "pnpm build:obsidian",
+    "dev": "pnpm dev:obsidian",
+    "test": "pnpm test:obsidian",
+    "build:obsidian": "tsc -p obsidian/tsconfig.json && node obsidian/esbuild.config.mjs production",
+    "dev:obsidian": "node obsidian/esbuild.config.mjs --watch",
+    "test:obsidian": "vitest run --config obsidian/vitest.config.ts",
+    "setup:obsidian-vault": "node obsidian/scripts/setup-test-vault.mjs",
+    "version": "node obsidian/scripts/version-bump.mjs && git add manifest.json obsidian/manifest.json versions.json"
+  },
+  "dependencies": {
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.15",
+    "@lezer/highlight": "1.2.5",
+    "fflate": "0.8.3",
+    "franc-min": "6.2.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "esbuild": "0.28.2",
+    "jsdom": "^31.0.0",
+    "obsidian": "1.12.3",
+    "pdfjs-dist": "^5.7.284",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^5.1.0"
+  }
+}

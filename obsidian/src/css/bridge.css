@@ -1,0 +1,39 @@
+/*
+ * Loaded AFTER Margin's scoped CSS: the reader follows the Obsidian theme (spec §8). Both theme classes
+ * are named so these win over the `.theme-dark .margin-app` block made from App.css's dark tokens.
+ * The D·Marginalia accents (--ink, --pencil, the highlight palette, the note colours) and --warning keep
+ * Margin's values; --focus-ring is derived from --accent, so it follows.
+ */
+.theme-light .margin-app,
+.theme-dark .margin-app {
+  --window: var(--background-primary);
+  /* Cards, menus and the focused editor sit above the window: never darker than it, as
+     --background-secondary is in light themes. A dark theme lifts them below. */
+  --surface: var(--background-primary);
+  --text: var(--text-normal);
+  --text-2: var(--text-muted);
+  --separator: var(--background-modifier-border);
+  --accent: var(--interactive-accent);
+  --accent-fill: var(--interactive-accent);
+  --on-accent: var(--text-on-accent);
+  --desk: color-mix(in srgb, var(--background-primary) 88%, var(--text-normal));
+  --hover: var(--background-modifier-hover);
+  /* Pressed reads stronger than hover: Obsidian's active-item tint, else a deeper text-colour wash. */
+  --pressed: color-mix(in srgb, var(--text-normal) 12%, transparent); /* neutral, like desktop; above Obsidian's ~7.5% hover */
+  --danger: var(--text-error);
+  font-family: var(--font-interface);
+}
+
+.theme-light .margin-app {
+  /* The margin column: a whisper of ink over the page background, not a slab. */
+  --margin-bg: color-mix(in srgb, var(--background-primary) 97%, var(--ink));
+  color-scheme: light;
+}
+
+/* After the shared --desk: in a dark theme a mix toward the (light) text would make the desk lighter than the page. */
+.theme-dark .margin-app {
+  --desk: color-mix(in srgb, var(--background-primary) 75%, black);
+  --surface: color-mix(in srgb, var(--background-primary) 92%, var(--text-normal));
+  --margin-bg: color-mix(in srgb, var(--background-primary) 96%, var(--ink));
+  color-scheme: dark;
+}

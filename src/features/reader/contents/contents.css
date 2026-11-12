@@ -1,0 +1,100 @@
+/* Contents sidebar (M4 spec §5.1, §6). Tokens only; light and dark follow the system. */
+.contents {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-width: 50vw;
+  background: var(--window);
+  border-right: 1px solid var(--separator);
+  animation: contents-in var(--dur-med) var(--ease-out);
+}
+@keyframes contents-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: none; }
+}
+.contents-bar { flex: none; padding: 12px 16px 8px; border-bottom: 1px solid var(--separator); }
+.contents-title { margin: 0; font-size: var(--fs-body); font-weight: 600; }
+.contents-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 6px 24px; }
+.contents-empty { margin: 12px 10px; color: var(--text-2); line-height: 1.5; }
+
+.toc,
+.toc-children { list-style: none; margin: 0; padding: 0; }
+.toc-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+  border-radius: 6px;
+}
+.toc-row:hover { background: var(--hover); }
+.toc-row.is-current { background: color-mix(in srgb, var(--ink) 13%, transparent); }
+.toc-row.is-current::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--ink);
+  animation: toc-mark var(--dur-med) var(--ease-out);
+}
+@keyframes toc-mark {
+  from { transform: scaleY(0); }
+  to { transform: none; }
+}
+.toc-row.on-path .toc-title { color: var(--ink); }
+.toc-twisty {
+  flex: none;
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+}
+.toc-twisty svg { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
+.toc-twisty[aria-expanded='true'] svg { transform: rotate(90deg); }
+.toc-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 6px 4px 2px;
+  border-radius: 5px;
+  text-align: left;
+  color: var(--text);
+}
+.toc-link:disabled { color: var(--text-2); font-style: italic; }
+.toc-row.is-current .toc-link { font-weight: 600; }
+.toc-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toc-count {
+  flex: none;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.toc-page { flex: none; font-size: var(--fs-meta); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.page-list .toc-link { padding-left: 10px; }
+/* A long PDF lists thousands of pages: let the browser skip laying out the rows that are off screen. */
+.page-list .toc-item { content-visibility: auto; contain-intrinsic-size: auto 28px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .contents,
+  .toc-row.is-current::before { animation: none; }
+  .toc-twisty svg { transition: none; }
+}
+@media (forced-colors: active) {
+  .toc-row.is-current { outline: 2px solid Highlight; }
+  .toc-row.is-current::before { background: Highlight; }
+  .toc-count { border: 1px solid CanvasText; }
+}

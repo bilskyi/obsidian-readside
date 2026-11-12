@@ -1,0 +1,119 @@
+/*
+ * Loaded BEFORE Margin's scoped CSS. Obsidian styles some elements and class names globally; inside the
+ * reader they start from the defaults Margin was designed on. Margin's own rules (equal or higher
+ * specificity, later in the file) then apply as on desktop.
+ */
+.margin-app {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Obsidian: `button`, `button:not(.clickable-icon)`, `button:hover` (0,1,1) — same specificity, and this file loads later. */
+.margin-app button {
+  display: inline-block;
+  height: auto;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background-color: transparent;
+  box-shadow: none;
+  font: inherit;
+  color: inherit;
+  white-space: normal;
+  /* Obsidian's plain `button` centres (flex) and disables selection; Margin's buttons declare their own. */
+  align-items: normal;
+  justify-content: normal;
+  user-select: auto;
+  transition: none;
+}
+
+/* Obsidian: `textarea`, `input[type=…]` (up to 0,1,1). Margin's class rules (0,2,0+) still win. */
+.margin-app textarea,
+.margin-app input {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+
+/* Obsidian's hover preview `.popover` and its `.notice` share class names with Margin's popover and notice. */
+.margin-app .popover {
+  display: block;
+  z-index: auto;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+.margin-app .notice {
+  display: block;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  border: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-variant: inherit;
+  line-height: inherit;
+  white-space: normal;
+  overflow-wrap: normal;
+}
+
+/*
+ * Obsidian's field states: `input[type=text]:hover` / `:focus` / `:focus-visible` (0,2,1) and `textarea:*`
+ * (0,1,1) add a height, a background, a box-shadow ring and a transition. Tied at (0,2,1), the input rules
+ * win by loading later. Margin's own focus rings stay on top: `.margin-app .search-field:focus-visible`,
+ * `.nb-label-field:focus-visible`, `.page-input:focus-visible` and `.popover textarea:focus-visible`
+ * are (0,3,0)/(0,3,1), and the thought editor's ring is on `.thought-editor:focus-within`, not on a field.
+ * The hover rule names typed fields only, so the untyped `.page-input` keeps its `--surface` background.
+ */
+.margin-app textarea,
+.margin-app input {
+  height: auto;
+  box-shadow: none;
+  outline: none;
+  transition: none;
+}
+@media (hover: hover) {
+  .margin-app input:where([type=text], [type=search]):hover,
+  .margin-app textarea:hover {
+    background-color: transparent;
+  }
+}
+.margin-app input:focus,
+.margin-app input:focus-visible {
+  box-shadow: none;
+}
+/*
+ * Obsidian's `textarea:focus` is (0,1,1), so (0,2,0) is enough here. Margin's generic ring,
+ * `.margin-app :where(button, textarea, [tabindex]):focus-visible`, is (0,2,0) too and loads later, so a
+ * textarea without a ring of its own still gets it.
+ */
+.margin-app :where(textarea):focus,
+.margin-app :where(textarea):focus-visible {
+  box-shadow: none;
+}
+
+/* Obsidian rings a focused tabindex element; the reader root takes focus on every page click. */
+.margin-app[data-margin-root]:focus-visible {
+  box-shadow: none;
+}
+
+/*
+ * Obsidian sets `body { user-select: none }` and re-enables selection only inside its own PDF viewer
+ * (`.pdf-container .textLayer`). Without this the page text inherits `none`: nothing can be selected,
+ * so nothing can be highlighted or quoted.
+ */
+.margin-app .textLayer,
+.margin-app .textLayer :is(span, br) {
+  -webkit-user-select: text;
+  user-select: text;
+}

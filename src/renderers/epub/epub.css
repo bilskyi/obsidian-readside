@@ -1,0 +1,95 @@
+/*
+ * EPUB as one continuous scroll (spec §B6). The scroller, the page boxes and the margin layer reuse the
+ * PDF classes (pdf.css): `.epub-scroller` and `.epub-page` only restyle them as a column of text. The
+ * renderer sets --epub-scale and, inline, each box's width and font size (zoom scales both).
+ */
+.epub-scroller {
+  /* Images load as the reader nears them: the browser keeps the reading spot steady while they do. */
+  overflow-anchor: auto;
+}
+.margin-epub {
+  --epub-scale: 1;
+}
+/* The column's padding and containment live on the page box, which only Margin styles: book CSS reaches
+   the section (`body` → `.epub-section`, at a higher specificity than the plain rules here), never the
+   page box, so a book can't take the padding away, and the box's paint containment clips whatever the
+   section does. Clipping alone isn't enough: `body { width: 9000px; margin-left: -4000px; display: inline }`
+   would still move the text out of the column, to be clipped away. The section guard below keeps the
+   section a full-width block inside the column; it uses `!important`, which book CSS never gets (scopeCss
+   drops it). The overlays (`.hl-layer`, `.search-layer`, `inset: 0`) cover the whole box, padding
+   included; rects are placed relative to its border box. */
+.pdf-page.epub-page {
+  box-sizing: border-box;
+  width: calc(680px * var(--epub-scale));
+  padding: calc(48px * var(--epub-scale)) calc(56px * var(--epub-scale));
+  contain: layout paint;
+  font-size: calc(18px * var(--epub-scale));
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--window);
+}
+/* The section guard: whatever the book says about `body`, the section is a block filling the column. Its
+   side padding counts inside that width (border-box) and scopeCss caps it at 25 % each side, so a book's
+   `body { padding: 0 49% }` can't squeeze the column to nothing. */
+.pdf-page.epub-page > .epub-section {
+  display: block !important;
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+/* The book's work budget ran out (budget.ts): the section shows what fit. A pseudo-element, so the note is
+   never part of the book's text (offsets, quotes, search). */
+.epub-page .epub-section[data-epub-truncated]::after {
+  content: 'This part of the book is too large to show.';
+  display: block;
+  margin-top: 1em;
+  font-style: italic;
+  color: var(--text-2);
+}
+/* The book's own content: nothing in it (a float, a huge box, a stacking context, a host class) paints or
+   positions outside its column. */
+.epub-page .epub-section {
+  position: relative;
+  contain: layout paint;
+  isolation: isolate;
+  z-index: 2;
+  overflow-wrap: break-word;
+  /* Obsidian turns selection off on body; book text is selectable like a PDF's text layer. */
+  -webkit-user-select: text;
+  user-select: text;
+}
+.epub-page .epub-section a {
+  color: var(--accent);
+}
+/* The overlays sit under the text (z-index 1 < the section's 2), so they blend normally: multiply (right on
+   a white PDF page) would sink them into a dark theme's page colour. Two classes on the page, so this
+   outranks pdf.css's `.pdf-page .hl-layer`-level multiply whatever the load order. */
+.pdf-page.epub-page .hl-layer,
+.pdf-page.epub-page .search-layer { mix-blend-mode: normal; }
+/* Over a highlight: it opens its popover on click (as over a PDF text layer). */
+.pdf-scroller[data-hl-hover] .epub-section,
+.pdf-scroller[data-hl-hover] .epub-section * { cursor: pointer; }
+.epub-page .epub-section img {
+  max-width: 100%;
+  height: auto;
+}
+/* An image too large (or unreadable) to decode: its alt text, in a quiet box. */
+.epub-page .epub-section img.epub-img-blocked {
+  display: inline-block;
+  min-width: 2em;
+  min-height: 1.6em;
+  padding: 0.2em 0.4em;
+  border: 1px dashed var(--separator);
+  color: var(--text-2);
+  font-size: 0.85em;
+}
+/* A large book: sections far from the reading one skip rendering until they come near. */
+.pdf-page.epub-page.is-far {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1000px;
+}
+@media (forced-colors: active) {
+  .pdf-page.epub-page { outline: 1px solid CanvasText; }
+  .epub-page .epub-section a { color: LinkText; }
+}

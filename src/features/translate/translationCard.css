@@ -1,0 +1,219 @@
+/* The translation card ("D · Marginalia"): a floating surface in the popover's place. App.css tokens only,
+   so light and dark (and Obsidian's theme, through the token bridge) follow by themselves. */
+
+.translation-card {
+  z-index: 10; /* the popover's layer: over the pages, the margin and the pill */
+  box-sizing: border-box;
+  width: 360px;
+  max-width: calc(100vw - 16px);
+  padding: 10px 12px 12px;
+  color: var(--text);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  background: var(--surface);
+  border-radius: 10px;
+  box-shadow: var(--toast-shadow);
+  animation: tc-in var(--dur-fast) var(--ease-out);
+  transform-origin: center bottom;
+}
+.translation-card.below { transform-origin: center top; }
+.translation-card:focus { outline: none; }
+.translation-card:focus-visible { box-shadow: var(--toast-shadow), var(--focus-ring); }
+@keyframes tc-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.tc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tc-langs {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.tc-detected { font-weight: 400; font-style: italic; }
+.tc-close {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1;
+}
+.tc-close:hover { background: var(--hover); color: var(--text); }
+
+.tc-message { margin: 0 0 10px; }
+.tc-error { color: var(--danger); }
+.tc-dim { color: var(--text-2); }
+.tc-small { margin: 6px 0 0; font-size: var(--fs-meta); }
+
+/* The translation: selectable, at most about 12 lines, then it scrolls inside the card. */
+.tc-text {
+  max-height: calc(1.45em * 12);
+  overflow-y: auto;
+  padding: 2px 0;
+  color: var(--note-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+.tc-text:focus { outline: none; }
+.tc-text:focus-visible { border-radius: 4px; box-shadow: var(--focus-ring); }
+
+.tc-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.tc-spacer { flex: 1; }
+.tc-btn {
+  padding: 4px 9px;
+  border-radius: 6px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.tc-btn:hover { background: var(--hover); }
+.tc-btn:active { background: var(--pressed); }
+.tc-btn:focus-visible,
+.tc-close:focus-visible,
+.tc-menu-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.tc-primary { font-weight: 600; color: var(--window); background: var(--ink); }
+.tc-primary:hover { background: color-mix(in srgb, var(--ink) 88%, var(--text)); }
+.tc-primary:active { background: color-mix(in srgb, var(--ink) 78%, var(--text)); }
+
+/* Translating: a thin indeterminate bar, shown only after 150 ms (a quick answer never flashes it). */
+.tc-working {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+  opacity: 0;
+  animation: tc-show 1ms linear 150ms forwards;
+}
+@keyframes tc-show { to { opacity: 1; } }
+.tc-bar {
+  position: relative;
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--separator);
+}
+.tc-bar-indeterminate::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  border-radius: 2px;
+  background: var(--ink);
+  animation: tc-slide 1.1s var(--ease-out) infinite;
+}
+@keyframes tc-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+
+/* Downloading: a determinate bar. */
+.tc-progress-text { margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+.tc-progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border: 0;
+  border-radius: 2px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--separator);
+  color: var(--ink);
+}
+.tc-progress::-webkit-progress-bar { border-radius: 2px; background: var(--separator); }
+.tc-progress::-webkit-progress-value { border-radius: 2px; background: var(--ink); transition: width var(--dur-fast) linear; }
+.tc-progress::-moz-progress-bar { border-radius: 2px; background: var(--ink); }
+
+/* More ▾: To and From side by side, each list scrolling on its own. */
+.tc-menu { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--separator); }
+.tc-menu-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tc-menu-group { min-width: 0; }
+.tc-menu-label { margin: 0 0 4px 6px; font-size: var(--fs-meta); font-weight: 600; color: var(--text-2); }
+.tc-menu-list { max-height: 168px; overflow-y: auto; }
+.tc-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 3px 6px;
+  border-radius: 5px;
+  color: var(--text);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.tc-menu-item:hover,
+.tc-menu-item:focus { background: var(--hover); }
+.tc-menu-item[aria-checked='true'] { font-weight: 600; }
+.tc-check { flex: none; width: 1em; color: var(--ink); }
+.tc-menu-default { margin-top: 6px; }
+
+.tc-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .translation-card { animation: none; }
+  .tc-working { animation: none; opacity: 1; }
+  .tc-bar-indeterminate::after { animation: none; width: 100%; opacity: 0.45; }
+  .tc-progress::-webkit-progress-value { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .translation-card { border: 1px solid CanvasText; }
+  .tc-primary { forced-color-adjust: none; color: HighlightText; background: Highlight; }
+  .tc-bar { border: 1px solid CanvasText; }
+  .tc-bar-indeterminate::after { background: Highlight; }
+  /* The determinate bar keeps its track and fill: system colours, not the page's tokens. */
+  .tc-progress { border: 1px solid CanvasText; forced-color-adjust: none; background: Canvas; }
+  .tc-progress::-webkit-progress-bar { background: Canvas; }
+  .tc-progress::-webkit-progress-value { background: Highlight; }
+  .tc-progress::-moz-progress-bar { background: Highlight; }
+  .tc-btn,
+  .tc-close,
+  .tc-menu-item { border: 1px solid transparent; }
+  .tc-btn:focus-visible,
+  .tc-close:focus-visible,
+  .tc-menu-item:focus-visible,
+  .tc-text:focus-visible { outline: 2px solid Highlight; }
+  .tc-check { color: CanvasText; }
+}
+
+/* The ⌥-hover word tooltip: small, over the word, never in the way (no pointer events, no focus). */
+.word-tip {
+  z-index: 11;
+  box-sizing: border-box;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 5px 8px;
+  color: var(--text);
+  font-size: var(--fs-meta);
+  line-height: 1.35;
+  background: var(--surface);
+  border-radius: 6px;
+  box-shadow: var(--toast-shadow);
+  pointer-events: none;
+  user-select: none;
+}
+.wt-text { display: block; color: var(--note-ink); font-size: var(--fs-body); overflow-wrap: anywhere; }
+.wt-meta { display: block; margin-top: 2px; color: var(--text-2); }
+.wt-pair { font-variant-numeric: tabular-nums; }
+.wt-orig { opacity: 0.8; }
+.wt-hint { color: var(--text-2); }
+@media (forced-colors: active) {
+  .word-tip { border: 1px solid CanvasText; }
+}

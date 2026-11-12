@@ -1,0 +1,186 @@
+.pdf-scroller {
+  position: relative;
+  overflow: auto;
+  /* Always reserve the vertical scrollbar's room so a re-fit cannot toggle it and change the width.
+     overflow-y: scroll is the fallback for WebKit without scrollbar-gutter (Safari < 18.2). */
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  height: 100%;
+  background: var(--desk, #e4e4e8);
+  padding: 24px 0;
+}
+/* margin-left is the renderer's (pageLane: centred, room for the margin column, both sides scrollable
+   when zoomed); auto only until the book has opened. */
+.pdf-page {
+  position: relative;
+  margin: 0 auto 16px;
+  background: white;
+  border-radius: 2px;
+  box-shadow: var(--page-shadow, 0 1px 3px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06));
+}
+.pdf-page canvas {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+}
+.pdf-page .hl-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  z-index: 1;
+}
+.pdf-page .textLayer {
+  z-index: 2;
+}
+/*
+ * The text layer is invisible text over a picture of the page, so a selection must be a see-through
+ * tint: an opaque selection colour (Obsidian themes set one on ::selection) hides the words under it.
+ * !important: themes style ::selection globally, sometimes with !important of their own.
+ */
+.pdf-page .textLayer ::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent) !important;
+  color: transparent !important;
+}
+.pdf-page .textLayer br::selection {
+  background: transparent !important;
+}
+/* The margin column's layer (M4 spec §5.2): the scroller's content coordinates, above the pages' text layers. */
+.pdf-margin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 3;
+}
+.hl,
+.hl-flash {
+  position: absolute;
+  border-radius: 2px;
+}
+/* Highlights (M4 spec §5.3): a pencil underline band in the highlight colour with a little grain (the
+   filter the renderer defines). Hovered (the renderer's hit test) or active (its popover or margin note
+   has focus) the fill rises to cover the line; a new one inks in left → right, line by line.
+   Colours come from the App.css palette: the band is the colour's ink, the fill its light tone. */
+.hl {
+  --hl-ink: var(--hl-yellow-ink);
+  --hl-tone: var(--hl-yellow);
+  --hl-band: color-mix(in srgb, var(--hl-ink) 85%, transparent);
+  --hl-fill: color-mix(in srgb, var(--hl-tone) 40%, transparent);
+  background-image:
+    linear-gradient(var(--hl-fill), var(--hl-fill)),
+    linear-gradient(var(--hl-band), var(--hl-band));
+  background-repeat: no-repeat;
+  background-position: left bottom, left bottom;
+  background-size: 100% 0%, 100% 24%;
+  filter: url(#margin-pencil);
+  transition: background-size var(--dur-med) var(--ease-out);
+}
+.hl-yellow { --hl-ink: var(--hl-yellow-ink); --hl-tone: var(--hl-yellow); }
+.hl-green { --hl-ink: var(--hl-green-ink); --hl-tone: var(--hl-green); }
+.hl-blue { --hl-ink: var(--hl-blue-ink); --hl-tone: var(--hl-blue); }
+.hl-pink { --hl-ink: var(--hl-pink-ink); --hl-tone: var(--hl-pink); }
+.hl-purple { --hl-ink: var(--hl-purple-ink); --hl-tone: var(--hl-purple); }
+.hl.is-hover,
+.hl.is-active { background-size: 100% 100%, 100% 24%; }
+/* Active also gets the red pencil stroke under its line. */
+.hl.is-active { box-shadow: inset 0 -2px 0 var(--pencil); }
+.hl.is-new {
+  animation: hl-ink var(--dur-slow) var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+@keyframes hl-ink {
+  from { background-size: 100% 0%, 0% 24%; }
+}
+/* Over a highlight: it opens its popover on click. */
+.pdf-scroller[data-hl-hover] .textLayer,
+.pdf-scroller[data-hl-hover] .textLayer :is(span, br) { cursor: pointer; }
+/* Sets the scroll width (pageLane's extent): an absolutely placed box counts towards a scroller's
+   overflow in every engine, where trailing padding or margins do not. */
+.pdf-extent { position: absolute; top: 0; left: 0; height: 1px; visibility: hidden; pointer-events: none; }
+/* Holds the pencil filter; takes no room and catches no pointer. */
+.pdf-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .hl { transition: none; filter: none; }
+  .hl.is-new { animation: none; }
+}
+@media (forced-colors: active) {
+  .hl {
+    forced-color-adjust: none;
+    filter: none;
+    background: none;
+    border-bottom: 2px solid Highlight;
+  }
+  .hl.is-hover,
+  .hl.is-active { outline: 2px solid Highlight; }
+}
+.hl-flash {
+  background: rgba(255, 140, 0, 0.55);
+  animation: hl-flash 1.2s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hl-flash { animation-duration: 0.01s; animation-delay: 1.2s; }
+}
+@keyframes hl-flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+/* Page-level jump (contents, page thoughts): a brief ink glow around the page. */
+.pdf-page.is-flashing { animation: page-flash 1.2s ease-out; }
+@keyframes page-flash {
+  from {
+    box-shadow:
+      var(--page-shadow, 0 1px 3px rgba(0, 0, 0, 0.12)),
+      0 0 0 3px color-mix(in srgb, var(--ink, #2f5bd8) 65%, transparent);
+  }
+  to {
+    box-shadow:
+      var(--page-shadow, 0 1px 3px rgba(0, 0, 0, 0.12)),
+      0 0 0 3px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pdf-page.is-flashing { animation-duration: 0.01s; }
+}
+
+/* Search hits (M4 spec §5.1): their own glow layer, above highlights, below the text layer. */
+.pdf-page .search-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  z-index: 1;
+}
+.search-hit {
+  position: absolute;
+  border-radius: 3px;
+  background: rgba(255, 196, 0, 0.38);
+  box-shadow: 0 0 0 2px rgba(255, 170, 0, 0.3), 0 0 10px 2px rgba(255, 170, 0, 0.3);
+}
+.search-hit.is-current {
+  background: rgba(255, 140, 0, 0.55);
+  box-shadow: 0 0 0 2px rgba(255, 120, 0, 0.7), 0 0 14px 4px rgba(255, 140, 0, 0.45);
+  animation: search-pulse 600ms ease-in-out 2;
+}
+@keyframes search-pulse {
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 3px rgba(255, 120, 0, 0.8), 0 0 22px 8px rgba(255, 140, 0, 0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-hit.is-current { animation: none; }
+}
+@media (forced-colors: active) {
+  .search-hit { forced-color-adjust: none; outline: 2px solid Highlight; }
+  .search-hit.is-current { outline-color: Mark; outline-width: 3px; }
+  .hl-flash { forced-color-adjust: none; background: none; outline: 3px solid Highlight; }
+  .pdf-page.is-flashing { outline: 3px solid Highlight; }
+}
+
+/* A page pdf.js couldn't read: its size is borrowed from the previous page; a quiet note stands in. */
+.pdf-page.is-unreadable .pdf-page-note {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--text-2); font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif;
+}

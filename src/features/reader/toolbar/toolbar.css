@@ -1,0 +1,164 @@
+/* Reader toolbar (M4 spec §5.1, §6). App.css tokens only, so light and dark follow the system. */
+.bar-start { justify-self: start; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.reader-tools { justify-self: end; display: flex; align-items: center; gap: 2px; }
+
+.tool-btn { gap: 5px; }
+.tool-btn svg { flex: none; }
+.tool-btn:disabled { opacity: 0.4; background: transparent; }
+.icon-btn { width: 28px; height: 26px; padding: 0; justify-content: center; }
+.tool-btn .key-hint { margin-left: 1px; }
+
+/* The page area takes focus back after a typed page or a zoom choice (tabindex -1, never tabbed to):
+   the page itself is the indicator, so no ring around the whole reading column. */
+.reader-host:focus,
+.reader-host .pdf-scroller:focus { outline: none; box-shadow: none; }
+
+.thought-btn { color: var(--ink); font-weight: 600; }
+.thought-btn:hover { background: color-mix(in srgb, var(--ink) 12%, transparent); }
+.thought-btn:active { background: color-mix(in srgb, var(--ink) 20%, transparent); }
+
+/* ---------- Page navigation ---------- */
+.page-nav {
+  display: flex;
+  align-items: center;
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid var(--separator);
+}
+.page-number {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.page-number:hover { background: var(--hover); }
+.page-current { display: inline-block; font-weight: 600; animation: page-tick var(--dur-fast) var(--ease-out); }
+.page-of { color: var(--text-2); }
+.page-input {
+  margin: 0 4px;
+  padding: 2px 4px;
+  min-width: 4ch;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--separator);
+  border-radius: 5px;
+}
+.page-input:focus-visible { outline: 2px solid transparent; box-shadow: var(--focus-ring); }
+@keyframes page-tick {
+  from { opacity: 0.2; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Zoom ---------- */
+.zoom-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+  padding-right: 6px;
+  border-right: 1px solid var(--separator);
+}
+.zoom-value { min-width: 52px; padding: 3px 6px; font-variant-numeric: tabular-nums; text-align: center; }
+.zoom-value:hover,
+.zoom-value[aria-expanded='true'] { background: var(--hover); }
+.zoom-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 8;
+  min-width: 170px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: var(--toast-shadow);
+  animation: menu-drop var(--dur-fast) var(--ease-out);
+}
+/* ZoomControl caps the menu's height to the reader (a short pane scrolls it): its rows keep their height. */
+.zoom-menu > * { flex-shrink: 0; }
+.zoom-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 5px;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--text);
+}
+.zoom-menu-item .key-hint { margin-left: auto; }
+.zoom-check { width: 14px; text-align: center; color: var(--ink); }
+.zoom-menu-item:hover,
+.zoom-menu-item:focus-visible {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  box-shadow: none;
+  outline: 2px solid transparent;
+}
+.zoom-menu-item:hover .zoom-check,
+.zoom-menu-item:focus-visible .zoom-check { color: var(--on-accent); }
+.zoom-menu-sep { height: 1px; margin: 4px 6px; background: var(--separator); }
+@keyframes menu-drop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+/* The upward menu (focus mode's pill) rises from the pill instead of dropping. */
+@keyframes menu-rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Reading progress (the highlight palette, inked left → right) ---------- */
+.reading-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: color-mix(in srgb, var(--separator) 60%, transparent);
+  pointer-events: none;
+}
+.reading-progress-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--progress);
+  transition: clip-path var(--dur-slow) var(--ease-out);
+}
+
+/* A narrow toolbar: icons only (every button keeps its aria-label). Measured on the toolbar itself, not
+   the window, so a narrow Obsidian split pane in a wide window compacts too. On desktop the toolbar spans
+   the window: a container query measures the content box, i.e. the window less the bar's 2 × 8px padding,
+   so 1084px / 744px here are the old 1100px / 760px window breakpoints exactly. */
+.reader-bar { container: margin-reader-bar / inline-size; }
+.bar-spacer { min-width: 0; }
+@container margin-reader-bar (max-width: 1084px) {
+  .tool-label { display: none; }
+}
+@container margin-reader-bar (max-width: 744px) {
+  .page-of,
+  .reader-title { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-current,
+  .zoom-menu { animation: none; }
+  .reading-progress-fill { transition: none; }
+}
+@media (forced-colors: active) {
+  .reading-progress-fill { background: Highlight; }
+  .page-input { border-color: CanvasText; }
+  .zoom-menu { border: 1px solid CanvasText; }
+  .zoom-menu-item:hover,
+  .zoom-menu-item:focus-visible { outline: 2px solid Highlight; }
+}
+/* Focus mode's pill sits at the bottom of the reader: its menu opens upward. */
+.zoom-menu.zoom-menu-above { top: auto; bottom: calc(100% + 6px); animation-name: menu-rise; }
+@media (prefers-reduced-motion: reduce) {
+  .zoom-menu.zoom-menu-above { animation: none; }
+}

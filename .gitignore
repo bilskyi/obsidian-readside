@@ -1,0 +1,14 @@
+node_modules/
+dist/
+main.js
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# The local test vault (pnpm setup:obsidian-vault): sample books, runtime data, symlinked build.
+obsidian/test-vault/
+
+# Translation engine and models are downloaded at run time into a vault's plugin folder; never commit them.
+translation/
+*.part
