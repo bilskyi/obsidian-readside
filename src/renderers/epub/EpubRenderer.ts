@@ -85,6 +85,29 @@ export const EPUB_NOMINAL_HEIGHT = 880;
 /** Fit zooms keep the column between these scales: a text column never grows past its readable measure. */
 export const FIT_MIN = 0.75;
 export const FIT_MAX = 1;
+/**
+ * A fit zoom on a screen too narrow for the column at FIT_MIN (a phone): the column narrows to the screen
+ * instead, less the fit gutter (pageLane keeps half of it on each side), and the text stays at this
+ * scale (16 px), with thinner side padding.
+ */
+export const NARROW_FIT_SCALE = 0.9;
+export const NARROW_GUTTER = FIT_GUTTER;
+/** The narrow column never gets narrower than this (CSS px). */
+export const NARROW_MIN_COLUMN = 240;
+
+/**
+ * A fit zoom's layout for a fit area `areaWidth` px wide (fitArea: the scroller less the margin's reserve
+ * on both sides): the column at its fitted scale, clamped to FIT_MIN..FIT_MAX; or, when even FIT_MIN
+ * would not fit, a narrow column as wide as the area less the fit gutter, with text at NARROW_FIT_SCALE.
+ */
+export function epubFit(areaWidth: number): { scale: number; column: number; narrow: boolean } {
+  const fitted = (areaWidth - FIT_GUTTER) / EPUB_COLUMN;
+  if (!(areaWidth > 0) || fitted >= FIT_MIN) {
+    const scale = clamp(fitted, FIT_MIN, FIT_MAX);
+    return { scale, column: EPUB_COLUMN * scale, narrow: false };
+  }
+  return { scale: NARROW_FIT_SCALE, column: Math.max(NARROW_MIN_COLUMN, Math.floor(areaWidth - NARROW_GUTTER)), narrow: true };
+}
 /** Above this many characters, sections far from the reading one skip rendering (`content-visibility`). */
 export const LARGE_BOOK_CHARS = 1_500_000;
 /** Sections further than this from the reading one are "far" in a large book. */
@@ -180,6 +203,8 @@ export class EpubRenderer implements RendererAdapter {
   private fitHeight = 0;
   private lastChange: WidthChange | null = null;
   private marginWidth = 0;
+  /** The column's width now (CSS px): EPUB_COLUMN × scale, or the screen's width in a narrow fit. */
+  private column = EPUB_COLUMN;
   private layoutQueued = false;
   private outline: OutlineEntry[] | null = null;
   private cancelPinch: () => void = () => {};
@@ -818,20 +843,41 @@ export class EpubRenderer implements RendererAdapter {
   /** The scale the current zoom asks for: a fixed percentage, or the column fitted (clamped) into the fit area. */
   private targetScale(): number {
     if (typeof this.zoom === 'number') return clampZoom(this.zoom) / 100;
-    const area = fitArea(this.scroller.clientWidth, this.scroller.clientHeight, this.marginWidth);
-    return clamp((area.width - FIT_GUTTER) / EPUB_COLUMN, FIT_MIN, FIT_MAX);
+    return epubFit(fitArea(this.scroller.clientWidth, this.scroller.clientHeight, this.marginWidth).width).scale;
+  }
+
+  /** In a fit zoom on a screen too narrow for the column at FIT_MIN: the column's width; otherwise null. */
+  private narrowColumn(): number | null {
+    if (typeof this.zoom === 'number') return null;
+    const fit = epubFit(fitArea(this.scroller.clientWidth, this.scroller.clientHeight, this.marginWidth).width);
+    return fit.narrow ? fit.column : null;
   }
 
   /** Column width and font follow the scale; lines reflow, so measured lines are dropped. */
   private applyScale(): void {
+    const narrow = this.narrowColumn();
+    this.column = narrow ?? EPUB_COLUMN * this.scale;
     this.bookEl.style.setProperty('--epub-scale', String(this.scale));
-    const width = `${round4(EPUB_COLUMN * this.scale)}px`;
+    this.bookEl.classList.toggle('is-narrow', narrow !== null);
+    const width = `${round4(this.column)}px`;
     const font = `${round4(EPUB_FONT_PX * this.scale)}px`;
     for (const ps of this.sections) {
       ps.el.style.width = width;
       ps.el.style.fontSize = font;
       dropLines(ps);
     }
+  }
+
+  /**
+   * After a resize at an unchanged scale: a narrow column follows the screen's width (a phone turned
+   * sideways). True when the column changed.
+   */
+  private syncColumn(): boolean {
+    if (!this.ready) return false;
+    const want = this.narrowColumn() ?? EPUB_COLUMN * this.scale;
+    if (want === this.column) return false;
+    this.applyScale();
+    return true;
   }
 
   private applyZoom(zoom: Zoom, anchor?: Anchor): void {
@@ -852,7 +898,13 @@ export class EpubRenderer implements RendererAdapter {
    * it is found by offset after the reflow. Without a line there, the spot's fraction of the section holds.
    */
   private relayout(scale: number, anchor?: Anchor): void {
-    if (scale === this.scale) return;
+    if (scale === this.scale) {
+      if (this.syncColumn()) {
+        this.placePages();
+        this.queueLayout();
+      }
+      return;
+    }
     const sc = this.scroller.getBoundingClientRect();
     const anchorY = anchor ? anchor.clientY - sc.top : readingLineY(this.scroller.clientHeight);
     const anchorX = anchor ? anchor.clientX - sc.left : this.scroller.clientWidth / 2;
@@ -891,7 +943,7 @@ export class EpubRenderer implements RendererAdapter {
   private placePages(): boolean {
     const width = this.scroller.clientWidth;
     if (this.sections.length === 0 || width <= 0) return false;
-    const laneWidth = EPUB_COLUMN * this.scale;
+    const laneWidth = this.column;
     const lane = pageLane(width, laneWidth, this.marginWidth);
     const left = `${pageLeft(lane.left, laneWidth, laneWidth)}px`;
     let changed = false;
@@ -914,7 +966,10 @@ export class EpubRenderer implements RendererAdapter {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let burstStart = 0;
     const ro = new ResizeObserver(() => {
-      if (!this.closed && this.placePages()) this.queueLayout();
+      if (!this.closed && (this.syncColumn() || this.placePages())) {
+        this.placePages();
+        this.queueLayout();
+      }
       if (timer !== undefined) clearTimeout(timer);
       else burstStart = performance.now();
       timer = setTimeout(() => {

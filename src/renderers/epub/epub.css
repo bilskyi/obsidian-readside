@@ -31,6 +31,10 @@
 /* The section guard: whatever the book says about `body`, the section is a block filling the column. Its
    side padding counts inside that width (border-box) and scopeCss caps it at 25 % each side, so a book's
    `body { padding: 0 49% }` can't squeeze the column to nothing. */
+/* A narrow fit (a phone): the column is the screen's width, so the side padding shrinks to match. */
+.margin-epub.is-narrow .pdf-page.epub-page {
+  padding: calc(32px * var(--epub-scale)) 16px;
+}
 .pdf-page.epub-page > .epub-section {
   display: block !important;
   box-sizing: border-box !important;
