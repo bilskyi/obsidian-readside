@@ -385,6 +385,21 @@ body { background: var(--window); color: var(--text); overflow: hidden; }
 }
 .reader-body { flex: 1; min-height: 0; display: flex; }
 .reader-body > .notice { flex: 1; margin: 0; }
+/* A phone: the notebook and contents open over the page, full width, instead of squeezing it beside them.
+   Their toolbar buttons close them again. Measured on the reader body, so a narrow split pane does this too. */
+.reader-body { position: relative; container: margin-reader-body / inline-size; }
+@container margin-reader-body (max-width: 560px) {
+  .reader-body > .notebook,
+  .reader-body > .contents {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    width: auto !important; /* over the panel's own width, set inline for the side-by-side layout */
+    max-width: none;
+    border: 0;
+  }
+  .reader-body > .notebook-resizer { display: none; }
+}
 .tool-btn { display: inline-flex; align-items: center; padding: 4px 8px; color: var(--text); }
 .tool-btn:hover { background: var(--hover); }
 .tool-btn:active,

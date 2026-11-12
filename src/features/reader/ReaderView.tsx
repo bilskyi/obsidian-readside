@@ -89,6 +89,8 @@ const NOTICE_MS = 1600;
 const EPUB_LINE_PX = 29;
 /** A margin focus request for a thought that never gets a margin note is dropped after this long. */
 export const MARGIN_FOCUS_MS = 3000;
+/** The reader body width up to which the notebook and contents open over the page (App.css, margin-reader-body). */
+export const PANEL_OVERLAY_MAX = 560;
 
 const saveFailed = () => `Couldn't save your thought. ${appName()} will retry.`;
 const UNLINK_UNAVAILABLE = "Couldn't unlink this thought: its highlight isn't loaded.";
@@ -1181,6 +1183,18 @@ export function ReaderView({
     fn().catch((e) => setProblem(String(e)));
   };
   const navigate = (location: Location) => attempt(() => jumpTo(location, { flash: true }));
+  /**
+   * On a phone the notebook and contents cover the page (App.css, reader body up to PANEL_OVERLAY_MAX):
+   * once one of them has sent the reader somewhere it closes, so the place it went to shows.
+   */
+  const closeOverlayPanel = (close: (open: boolean) => void) => {
+    const width = bodyRef.current?.clientWidth ?? 0;
+    if (width > 0 && width <= PANEL_OVERLAY_MAX) close(false);
+  };
+  const navigateFromNotebook = (location: Location) => {
+    navigate(location);
+    closeOverlayPanel(setNotebookOpen);
+  };
   useLayoutEffect(() => {
     internalLink.current = navigate;
   });
@@ -1354,8 +1368,14 @@ export function ReaderView({
                     currentPage={currentPage}
                     thoughtPages={thoughtPages}
                     width={shownContentsWidth}
-                    onNavigate={jumpToPage}
-                    onNavigateTo={jumpToEntry}
+                    onNavigate={(page) => {
+                      jumpToPage(page);
+                      closeOverlayPanel(setContentsOpen);
+                    }}
+                    onNavigateTo={(at) => {
+                      jumpToEntry(at);
+                      closeOverlayPanel(setContentsOpen);
+                    }}
                     format={placeFormat}
                   />
                   <ResizeHandle
@@ -1444,7 +1464,7 @@ export function ReaderView({
                     currentLocation={currentLocation}
                     focusThoughtId={focusThoughtId}
                     onFocusHandled={onFocusHandled}
-                    onNavigate={navigate}
+                    onNavigate={navigateFromNotebook}
                     onSaveThought={saveThought}
                     onCopyLink={copyLink}
                     onUnlinkThought={unlinkThought}
