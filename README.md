@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/bilskyi/obsidian-readside/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/bilskyi/obsidian-readside?style=flat-square&color=7c3aed"></a>
   <img alt="Obsidian 1.15+" src="https://img.shields.io/badge/Obsidian-1.15%2B-7c3aed?style=flat-square&logo=obsidian&logoColor=white">
-  <img alt="Desktop only" src="https://img.shields.io/badge/platform-desktop-555?style=flat-square">
+  <img alt="Desktop and mobile" src="https://img.shields.io/badge/platform-desktop%20%7C%20mobile-555?style=flat-square">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-555?style=flat-square"></a>
 </p>
 
@@ -59,7 +59,7 @@
 ## Install
 
 > [!WARNING]
-> **Back up your vault first** (at least its `.obsidian` folder). Requires Obsidian 1.15.0 or later on desktop (Windows, macOS, Linux).
+> **Back up your vault first** (at least its `.obsidian` folder). Requires Obsidian 1.15.0 or later: desktop (Windows, macOS, Linux), iPhone, iPad and Android.
 
 **Community plugins** (once listed): Settings → Community plugins → Browse → search "Readside" → Install → Enable.
 
@@ -77,6 +77,8 @@ Readside used to be called **Margin**. Turn Margin off, then enable Readside: yo
 1. Click the 📖 book icon in the ribbon to open the **shelf**, or right-click a PDF or EPUB → **Open in Readside**.
 2. Select text: press <kbd>1</kbd>–<kbd>5</kbd> to highlight, <kbd>N</kbd> for a note, <kbd>T</kbd> for a thought, <kbd>L</kbd> to translate.
 3. Press <kbd>⌘</kbd><kbd>\\</kbd> for the notebook. Its Markdown copy is in the `Readside/` folder of your vault.
+
+On a phone or tablet, long-press to select text; the colours and actions appear below the selection. The toolbar's buttons open the notebook and contents.
 
 | Action | Key (macOS) |
 | --- | --- |

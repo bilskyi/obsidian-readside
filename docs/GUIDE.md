@@ -207,7 +207,10 @@ Readside was called Margin, with the id `margin-reader`. The new id gives it a n
 
 ## Known limits
 
-- Desktop only (`isDesktopOnly`); PDFs and EPUBs.
+- PDFs and EPUBs.
+- On phones and tablets: select text with a long-press, then the colours and actions appear below it.
+  On a phone the notebook and contents open over the page. ⌥-hover translation and the keyboard
+  shortcuts are desktop features. Two devices editing the same book at once are not merged (see below).
 - Uses Obsidian's own pdf.js; it is not bundled.
 - Syncing `books/` between devices is whatever your vault sync does; two devices writing the same book
   at once are not merged.
