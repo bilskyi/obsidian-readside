@@ -57,7 +57,7 @@ export function ReaderToolbar(p: ReaderToolbarProps) {
     <header className="reader-bar">
       <div className="bar-start">
         {p.onBack && (
-          <button type="button" className="back-btn" title={p.backButton?.title} onClick={p.onBack}>
+          <button type="button" className="back-btn" aria-label={p.backButton?.label ?? 'Library'} title={p.backButton?.title} onClick={p.onBack}>
             {p.backButton?.icon === 'library' ? (
               <LibraryIcon />
             ) : (
@@ -65,7 +65,7 @@ export function ReaderToolbar(p: ReaderToolbarProps) {
                 ‹
               </span>
             )}
-            {p.backButton?.label ?? 'Library'}
+            <span className="back-label">{p.backButton?.label ?? 'Library'}</span>
           </button>
         )}
         {open && (
@@ -123,7 +123,7 @@ export function ReaderToolbar(p: ReaderToolbarProps) {
         {p.onToggleFocus && (
           <button
             type="button"
-            className="tool-btn icon-btn"
+            className="tool-btn icon-btn focus-btn"
             aria-label="Focus mode"
             aria-keyshortcuts="Meta+."
             title="Focus Mode (⌘.)"

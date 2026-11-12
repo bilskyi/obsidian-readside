@@ -144,6 +144,14 @@
   .page-of,
   .reader-title { display: none; }
 }
+/* A phone: the back button keeps its icon, zoom keeps its menu (pinch zooms), and focus mode stays in
+   the command palette, so every remaining button fits. */
+@container margin-reader-bar (max-width: 520px) {
+  .back-label,
+  .zoom-step,
+  .focus-btn { display: none; }
+  .page-nav { margin-left: 0; padding-left: 2px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .page-current,
