@@ -103,7 +103,7 @@ describe('settings tab', () => {
 });
 
 // ---- T7: Settings → Translation ----
-import { ButtonComponent, DropdownComponent, Notice } from 'obsidian';
+import { ButtonComponent, DropdownComponent, Notice, Platform } from 'obsidian';
 import { LANGUAGES, pickDefaultTarget } from '../../src/translate/languages';
 import { NOTHING_DOWNLOADED, normalizeTranslationSettings, pairTitle, type MarginSettings, type TranslationSettingsSource } from '../src/settings';
 
@@ -190,6 +190,19 @@ describe('settings tab: Translation (T7)', () => {
     await hover.toggle(false);
     expect(host.settings.translateHover).toBe(false);
     expect(host.saveSettings).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves out the ⌥-hover toggle on phones and tablets (no hover, no ⌥ key)', () => {
+    const hoverCount = () => Setting.all.filter((x) => x.name === '⌥-hover translates words').length;
+    const before = hoverCount();
+    Platform.isMobile = true;
+    try {
+      const { setting } = translationTab(new FakeSource());
+      expect(setting('Translate to')).toBeDefined();
+      expect(hoverCount()).toBe(before);
+    } finally {
+      Platform.isMobile = false;
+    }
   });
 
   it('says "Nothing downloaded yet" when nothing is', async () => {

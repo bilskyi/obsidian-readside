@@ -184,7 +184,8 @@ export class MarginSettingTab extends PluginSettingTab {
         });
       });
     const key = Platform.isMacOS ? '⌥' : 'Alt';
-    new Setting(containerEl)
+    // Phones and tablets have no hover and (usually) no ⌥ key: the setting would do nothing there.
+    if (!Platform.isMobile) new Setting(containerEl)
       .setName(`${key}-hover translates words`)
       .setDesc(`Hold ${key} and point at a word to see its translation. Works for languages you have downloaded.`)
       .addToggle((t) =>

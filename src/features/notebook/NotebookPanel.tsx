@@ -1,4 +1,5 @@
 import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { coarsePointer } from '../../lib/floating';
 import { labelText, thoughtLabel } from '../../lib/labels';
 import { parseLocation, sameSpot } from '../../lib/location';
 import { displayQuote } from '../../lib/quote';
@@ -146,7 +147,9 @@ export function NotebookPanel(props: NotebookPanelProps) {
         {groups.length === 0 ? (
           <p className="notebook-empty">
             {count === 0
-              ? 'Highlights and thoughts for this book appear here. Select text and press T, or press ⌘⇧M, to add a thought.'
+              ? coarsePointer(null)
+                ? 'Highlights and thoughts for this book appear here. Select text and tap a colour or Thought, or tap + in the toolbar, to add one.'
+                : 'Highlights and thoughts for this book appear here. Select text and press T, or press ⌘⇧M, to add a thought.'
               : 'Nothing matches these filters.'}
           </p>
         ) : (

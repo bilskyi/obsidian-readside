@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useState, type CSSProperties } from 'react';
+import { coarsePointer } from '../../lib/floating';
 
 /** Per device: once dismissed, the first-run hint never shows again (desktop and Obsidian alike). */
 export const HINT_DISMISSED_KEY = 'margin.hint.firstThought.dismissed';
@@ -8,6 +9,9 @@ export const HINT_TEXT = "Hover the page's right edge and click + to add a thoug
 /** Its second: the shortcut where it is ⌘⇧M (the reader's chords are ⌘ chords: readerCommand reads metaKey), the command elsewhere. */
 export const HINT_KEYS_MAC = '⌘⇧M adds one at the reading line.';
 export const HINT_KEYS_OTHER = 'The “Add thought at reading line” command adds one there.';
+/** On a touch screen there is no hover and no keyboard: tapping the margin, and the toolbar's +. */
+export const HINT_TEXT_TOUCH = 'Tap in the margin beside a line to add a thought there.';
+export const HINT_KEYS_TOUCH = 'The + in the toolbar adds one at the reading line.';
 
 /** macOS, where the reader's ⌘ chords exist. */
 export function isMacPlatform(): boolean {
@@ -57,12 +61,22 @@ export function useHintDismissed(): [boolean, () => void] {
 }
 
 /** A quiet first-run hint at the top of the empty margin: how to add a thought, and "Got it". */
-export function MarginHint({ style, onDismiss, mac = isMacPlatform() }: { style: CSSProperties; onDismiss: () => void; mac?: boolean }) {
+export function MarginHint({
+  style,
+  onDismiss,
+  mac = isMacPlatform(),
+  touch = coarsePointer(null),
+}: {
+  style: CSSProperties;
+  onDismiss: () => void;
+  mac?: boolean;
+  touch?: boolean;
+}) {
   const textId = useId();
   return (
     <div className="margin-hint" role="note" style={style}>
       <p className="margin-hint-text" id={textId}>
-        {HINT_TEXT} {mac ? HINT_KEYS_MAC : HINT_KEYS_OTHER}
+        {touch ? `${HINT_TEXT_TOUCH} ${HINT_KEYS_TOUCH}` : `${HINT_TEXT} ${mac ? HINT_KEYS_MAC : HINT_KEYS_OTHER}`}
       </p>
       <button type="button" className="margin-hint-dismiss" aria-describedby={textId} onClick={onDismiss}>
         Got it
