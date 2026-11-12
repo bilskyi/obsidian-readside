@@ -1,6 +1,6 @@
 # Pushing a tag x.y.z (no "v" prefix) that equals manifest.json's version tests and builds the plugin,
 # then creates a DRAFT GitHub release with main.js, manifest.json and styles.css attached.
-# Review the draft, then publish it.
+# main.js and styles.css get GitHub build-provenance attestations. Review the draft, then publish it.
 name: Release
 
 on:
@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -37,6 +39,12 @@ jobs:
           node -e "const v=require('./versions.json'); if (!v[process.argv[1]]) { console.error('::error::versions.json has no entry for ' + process.argv[1]); process.exit(1); }" "$tag"
       - run: pnpm test
       - run: pnpm build
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            obsidian/dist/main.js
+            obsidian/dist/styles.css
       - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}
