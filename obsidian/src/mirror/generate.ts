@@ -29,7 +29,7 @@ const noComment = (s: string) => s.replace(/%%/g, '%&#37;');
  * unchanged.
  */
 export const quoteText = (s: string): string =>
-  noComment(s.replace(/</g, '&lt;').replace(/(?<=\[)\[/g, '\\[').replace(/!\[/g, '!\\['));
+  noComment(s.replace(/</g, '&lt;').replace(/\[\[+/g, (run) => `[${'\\['.repeat(run.length - 1)}`).replace(/!\[/g, '!\\['));
 
 /**
  * Book text (an OPF title, a TOC entry) as literal Markdown text: Markdown's specials are backslash-escaped,

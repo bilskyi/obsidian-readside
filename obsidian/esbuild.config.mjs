@@ -6,7 +6,7 @@ import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scopeCss } from './src/css/scope.ts';
-import { MAIN_JS_BUDGET, MPL_NOTICE, buildOptions, createsScriptElement } from './scripts/buildOptions.mjs';
+import { MAIN_JS_BUDGET, MPL_NOTICE, buildOptions, createsScriptElement, usesLookbehind } from './scripts/buildOptions.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, 'dist');
@@ -63,6 +63,11 @@ if (watch) {
   // Obsidian's plugin review rejects runtime script injection.
   if (createsScriptElement(js)) {
     console.error("margin: main.js contains createElement('script')");
+    process.exit(1);
+  }
+  // Obsidian on older iPhones and iPads (iOS < 16.4) can't parse a lookbehind: nothing would load.
+  if (usesLookbehind(js)) {
+    console.error('margin: main.js contains a regex lookbehind; use src/lib/notAfter.ts');
     process.exit(1);
   }
 }

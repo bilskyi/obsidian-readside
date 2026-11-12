@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 // @ts-expect-error plain .mjs build helper without types
-import { MAIN_JS_BUDGET, MPL_NOTICE, buildOptions, createsScriptElement } from '../scripts/buildOptions.mjs';
+import { MAIN_JS_BUDGET, MPL_NOTICE, buildOptions, createsScriptElement, usesLookbehind } from '../scripts/buildOptions.mjs';
 
 const out = mkdtempSync(join(tmpdir(), 'margin-bundle-'));
 afterAll(() => rmSync(out, { recursive: true, force: true }));
@@ -24,6 +24,8 @@ describe('main.js (production bundle, as pnpm build:obsidian makes it)', () => {
     // Obsidian's plugin review rejects createElement('script'); React DOM's paths are stubbed out.
     expect(createsScriptElement(js)).toBe(false);
     expect(js).toContain('Readside: script elements are disabled');
+    // Older iOS WebKit can't parse lookbehind: one in main.js and the plugin doesn't load there at all.
+    expect(usesLookbehind(js)).toBe(false);
   }, 60_000);
 
   it('detects a script element however it is quoted', () => {

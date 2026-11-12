@@ -19,6 +19,7 @@
  * rules, leading `@import`s and group nesting all have caps (see the constants below).
  */
 
+import { matchesNotAfter, replaceNotAfter } from '../../lib/notAfter';
 import { ZOOM_MAX } from '../pdf/zoom';
 import type { BookBudget } from './budget';
 
@@ -142,7 +143,7 @@ export function hugeLength(name: string, value: string): boolean {
   if (stars > 1) return true;
   let maxPx = 0;
   let maxFactor = 1;
-  for (const m of value.matchAll(/(?<![\w.])([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)([a-z]*|%)/gi)) {
+  for (const m of matchesNotAfter(value, NUMBER_UNIT, /[\w.]/)) {
     const n = Math.abs(Number(m[1]));
     if (!Number.isFinite(n)) return true;
     const unit = m[2].toLowerCase();
@@ -186,10 +187,14 @@ function allowedValue(name: string, value: string): boolean {
  * scales only the text.
  */
 const ZOOMED = new Set(['font-size', 'line-height']);
+/** A number and its unit (or %, or none). Matched with matchesNotAfter(…, /[\w.]/): not inside a word or a number. */
+const NUMBER_UNIT = /([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)([a-z]*|%)/gi;
+/** An absolute length. Matched with replaceNotAfter(…, /[\w.#-]/): not inside a word, number, colour or name. */
+const ABSOLUTE_LENGTH = /([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(px|pt|pc|in|cm|mm|q|rem)(?![\w%-])/gi;
 const ABSOLUTE_PX: Record<string, number> = { px: 1, pt: 4 / 3, pc: 16, in: 96, cm: 96 / 2.54, mm: 96 / 25.4, q: 96 / 101.6, rem: 18 };
 
 export function zoomedLengths(value: string): string {
-  return value.replace(/(?<![\w.#-])([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(px|pt|pc|in|cm|mm|q|rem)(?![\w%-])/gi, (m, num: string, unit: string) => {
+  return replaceNotAfter(value, ABSOLUTE_LENGTH, /[\w.#-]/, (m, num: string, unit: string) => {
     const px = Number(num) * ABSOLUTE_PX[unit.toLowerCase()];
     if (!Number.isFinite(px) || px === 0) return m;
     return `calc(${Math.round(px * 1e4) / 1e4}px * var(--epub-scale))`;

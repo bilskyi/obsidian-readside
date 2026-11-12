@@ -67,6 +67,11 @@ const noScriptElements = {
   },
 };
 
+/** True when bundled code has a regex lookbehind, which iOS WebKit before 16.4 can't parse (the whole file fails). */
+export function usesLookbehind(js) {
+  return /\(\?<[=!]/.test(js);
+}
+
 /** True when bundled code creates a <script> element. */
 export function createsScriptElement(js) {
   return /createElement\(\s*(["'`])script\1\s*\)/.test(js);
