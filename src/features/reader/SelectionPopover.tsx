@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { fixedOrigin, floatBounds, placeOver } from '../../lib/floating';
+import { coarsePointer, FLOAT_INSET, fixedOrigin, floatBounds, placeOver, TOUCH_HANDLE_GAP } from '../../lib/floating';
 import { inPageArea, isEditable, shortcutKey } from '../../lib/keys';
 import { COLORS, type Annotation, type Color } from '../../lib/types';
 
@@ -74,10 +74,15 @@ export function SelectionPopover({ rect, mode, onColor, onNote, onThought, onTra
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // No wider than the reader (on a phone the window's width is not the reader's): its row wraps instead.
+    const bounds = floatBounds(el);
+    el.style.maxWidth = `${Math.max(0, bounds.right - bounds.left - 2 * FLOAT_INSET)}px`;
     // Layout size: getBoundingClientRect is scaled by the entry animation's transform.
     const width = el.offsetWidth;
     const height = el.offsetHeight;
-    const placed = placeOver(rect, { width, height }, floatBounds(el), GAP);
+    // On touch screens the system's selection menu sits above the selection: go below, past the handles.
+    const touch = coarsePointer(el);
+    const placed = placeOver(rect, { width, height }, bounds, touch ? TOUCH_HANDLE_GAP : GAP, undefined, touch);
     // placeOver works in viewport coordinates; a fixed box is placed from its containing block's corner,
     // which in Obsidian is the leaf (contain: strict), not the viewport.
     const origin = fixedOrigin(el);

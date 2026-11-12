@@ -473,6 +473,7 @@ body { background: var(--window); color: var(--text); overflow: hidden; }
 .popover textarea::placeholder { color: rgba(255, 255, 255, 0.45); }
 .popover textarea:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
 .popover-hint { margin: 6px 2px 1px; font-size: var(--fs-meta); color: rgba(255, 255, 255, 0.6); white-space: nowrap; }
+
 .popover-note {
   margin: 4px 6px 3px;
   max-width: 320px;
@@ -495,6 +496,16 @@ body { background: var(--window); color: var(--text); overflow: hidden; }
   line-height: 15px;
   text-align: center;
 }
+
+/* Touch screens: keyboard hints mean nothing there, and a phone is narrower than the popover's row. */
+@media (pointer: coarse) {
+  .popover .key-hint,
+  .key-hint { display: none; }
+  .popover-row { flex-wrap: wrap; row-gap: 4px; }
+  .popover-btn { padding: 8px 10px; }
+  .popover-hint { white-space: normal; }
+}
+
 .popover-keys { margin: 0 4px 0 0; }
 
 /* ---------- The page's right-click menu (desktop; Obsidian shows its own Menu) ---------- */

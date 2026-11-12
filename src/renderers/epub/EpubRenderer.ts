@@ -1,4 +1,5 @@
 import { epubLocation, epubPoint, serializeLocation, spotOf } from '../../lib/location';
+import { watchTouchSelection } from '../../lib/touchSelection';
 import type { EpubLocationValue, Location, OutlineEntry } from '../../lib/types';
 import { Emitter } from '../emitter';
 import type {
@@ -1387,6 +1388,7 @@ export class EpubRenderer implements RendererAdapter {
     s.addEventListener('scroll', onScroll);
     s.addEventListener('click', onClick);
     s.addEventListener('mouseup', onMouseUp);
+    const stopTouchSelection = watchTouchSelection(s, () => this.selectionEm.emit(this.currentSelection()));
     s.addEventListener('mousemove', onHover);
     s.addEventListener('mouseleave', onLeave);
     s.addEventListener('keydown', onKey);
@@ -1402,6 +1404,7 @@ export class EpubRenderer implements RendererAdapter {
       s.removeEventListener('scroll', onScroll);
       s.removeEventListener('click', onClick);
       s.removeEventListener('mouseup', onMouseUp);
+      stopTouchSelection();
       s.removeEventListener('mousemove', onHover);
       s.removeEventListener('mouseleave', onLeave);
       s.removeEventListener('keydown', onKey);

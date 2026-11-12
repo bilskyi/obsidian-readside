@@ -1,6 +1,7 @@
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask, TextLayer } from 'pdfjs-dist';
 import { pdfjs, pdfjsDocOptions } from './pdfjsProvider';
 import { isPdfPoint, pdfLocation, pdfPoint, serializeLocation, spotOf } from '../../lib/location';
+import { watchTouchSelection } from '../../lib/touchSelection';
 import type { Location, OutlineEntry, PdfLocationValue } from '../../lib/types';
 import { Emitter } from '../emitter';
 import type {
@@ -1228,6 +1229,7 @@ export class PdfRenderer implements RendererAdapter {
 
     this.scroller.addEventListener('scroll', onScroll);
     this.scroller.addEventListener('mouseup', onMouseUp);
+    const stopTouchSelection = watchTouchSelection(this.scroller, () => this.emitSelection());
     this.scroller.addEventListener('click', onClick);
     this.scroller.addEventListener('wheel', onWheel, { passive: false });
     this.scroller.addEventListener('gesturestart', onGestureStart);
@@ -1242,6 +1244,7 @@ export class PdfRenderer implements RendererAdapter {
       if (gestureTimer !== undefined) clearTimeout(gestureTimer);
       this.scroller.removeEventListener('scroll', onScroll);
       this.scroller.removeEventListener('mouseup', onMouseUp);
+      stopTouchSelection();
       this.scroller.removeEventListener('click', onClick);
       this.scroller.removeEventListener('wheel', onWheel);
       this.scroller.removeEventListener('gesturestart', onGestureStart);

@@ -50,6 +50,8 @@ export function floatBounds(el: Element | null): Bounds {
 /**
  * A popover over an anchor box (a selection): centred above it, `gap` px off; below it instead when it
  * would not fit above inside `bounds`; shifted sideways (and, as a last resort, up or down) to stay inside.
+ * `preferBelow` (touch screens, where the system's own selection menu sits above) flips the preference:
+ * below, unless it would not fit there.
  */
 export function placeOver(
   anchor: { top: number; bottom: number; left: number; width: number },
@@ -57,9 +59,12 @@ export function placeOver(
   bounds: Bounds,
   gap: number,
   inset = FLOAT_INSET,
+  preferBelow = false,
 ): { top: number; left: number; below: boolean } {
   const above = anchor.top - gap - size.height;
-  const below = above < bounds.top + inset;
+  const fitsAbove = above >= bounds.top + inset;
+  const fitsBelow = anchor.bottom + gap + size.height <= bounds.bottom - inset;
+  const below = preferBelow ? fitsBelow || !fitsAbove : !fitsAbove;
   const top = clampSpan(below ? anchor.bottom + gap : above, size.height, bounds.top, bounds.bottom, inset);
   const left = clampSpan(anchor.left + anchor.width / 2 - size.width / 2, size.width, bounds.left, bounds.right, inset);
   return { top, left, below };
@@ -104,5 +109,18 @@ export function fixedOrigin(el: Element | null): { x: number; y: number } {
     return { x: Number.isFinite(r.left) ? r.left : 0, y: Number.isFinite(r.top) ? r.top : 0 };
   } finally {
     probe.remove();
+  }
+}
+
+/** Room under a touch selection for its drag handles, so a popover placed below doesn't cover them. */
+export const TOUCH_HANDLE_GAP = 28;
+
+/** True on a touch screen without a precise pointer (phones, tablets without a trackpad). */
+export function coarsePointer(el: Element | null): boolean {
+  const win = el?.ownerDocument.defaultView ?? window;
+  try {
+    return win.matchMedia('(pointer: coarse)').matches;
+  } catch {
+    return false;
   }
 }
