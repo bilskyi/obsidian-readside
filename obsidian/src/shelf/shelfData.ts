@@ -1,4 +1,4 @@
-import { parseLocation, placeName, placeNameFor, spotOf } from '../../../src/lib/location';
+import { compareLocations, parseLocation, placeName, placeNameFor, spotOf } from '../../../src/lib/location';
 import { bookDisplayTitle } from '../../../src/lib/titles';
 import type { Color, Location } from '../../../src/lib/types';
 import { formatOf, type DeepReadonly, type ShelfEntry } from '../store/bookStore';
@@ -281,6 +281,116 @@ export function searchBooks(query: string, books: readonly ShelfBook[], loaded: 
   return groups;
 }
 
+// ---- highlights & thoughts: everything, browsable ----
+
+/** What the list shows: everything, highlights, highlights with a note, or what has a thought. */
+export type NoteKind = 'all' | 'highlights' | 'notes' | 'thoughts';
+/** Newest change first, or book by book in reading order (books in shelf order). */
+export type NoteSort = 'newest' | 'book';
+
+export interface NoteFilter {
+  kind: NoteKind;
+  /** Highlight colours to show; empty: every colour (and thoughts at a place). */
+  colors: readonly Color[];
+  /** One book (its id), or null for all. */
+  bookId: string | null;
+  sort: NoteSort;
+}
+
+export const ALL_NOTES: NoteFilter = { kind: 'all', colors: [], bookId: null, sort: 'newest' };
+
+/** One entry of the list: a highlight with its note and its thoughts, or a thought at a place. */
+export interface ShelfNote {
+  id: string;
+  book: ShelfBook;
+  /** The highlighted text; null for a thought at a place. */
+  quote: string | null;
+  color: Color | null;
+  note: string | null;
+  /** Its thoughts (plain text), oldest first; a thought at a place is its own one. */
+  thoughts: { id: string; text: string }[];
+  location: Location | null;
+  page: number | null;
+  createdAt: string;
+  /** The newest change among it, its note and its thoughts. */
+  updatedAt: string;
+}
+
+const newer = (a: string, b: string) => (a > b ? a : b);
+
+/** Every highlight and thought of the loaded books, as list entries, filtered and sorted. Missing books are left out. */
+export function shelfNotes(books: readonly ShelfBook[], loaded: LoadedBooks, filter: NoteFilter): ShelfNote[] {
+  const out: ShelfNote[] = [];
+  books.forEach((book) => {
+    if (book.missing || (filter.bookId !== null && book.bookId !== filter.bookId)) return;
+    const f = loaded.get(book.bookId);
+    if (!f) return;
+    const byAnchor = new Map<string, ShelfNote>();
+    const entries: ShelfNote[] = [];
+    for (const a of f.annotations) {
+      const location = parseLocation(a.location);
+      const n: ShelfNote = {
+        id: a.id,
+        book,
+        quote: a.quote.replace(/\s+/g, ' ').trim(),
+        color: a.color,
+        note: a.note?.trim() || null,
+        thoughts: [],
+        location,
+        page: pageOf(location),
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+      };
+      byAnchor.set(a.id, n);
+      entries.push(n);
+    }
+    const thoughts = [...f.thoughts].sort((x, y) => (x.createdAt < y.createdAt ? -1 : x.createdAt > y.createdAt ? 1 : 0));
+    for (const t of thoughts) {
+      const text = plainText(t.body);
+      if (!text) continue;
+      const anchor = t.anchorId ? byAnchor.get(t.anchorId) : undefined;
+      if (anchor) {
+        anchor.thoughts.push({ id: t.id, text });
+        anchor.updatedAt = newer(anchor.updatedAt, t.updatedAt);
+        continue;
+      }
+      const location = thoughtLocation(f, t);
+      entries.push({
+        id: t.id,
+        book,
+        quote: null,
+        color: null,
+        note: null,
+        thoughts: [{ id: t.id, text }],
+        location,
+        page: pageOf(location),
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+      });
+    }
+    const colors = new Set(filter.colors);
+    const kept = entries.filter((n) => {
+      if (colors.size > 0 && (n.color === null || !colors.has(n.color))) return false;
+      if (filter.kind === 'highlights') return n.quote !== null;
+      if (filter.kind === 'notes') return n.note !== null;
+      if (filter.kind === 'thoughts') return n.thoughts.length > 0;
+      return true;
+    });
+    if (filter.sort === 'book') {
+      kept.sort((x, y) => {
+        if (x.location && y.location) {
+          const c = compareLocations(x.location, y.location);
+          if (c !== 0) return c;
+        } else if (x.location !== y.location) return x.location ? -1 : 1;
+        return x.createdAt < y.createdAt ? -1 : x.createdAt > y.createdAt ? 1 : 0;
+      });
+    }
+    out.push(...kept);
+  });
+  if (filter.sort === 'newest') out.sort((x, y) => (x.updatedAt < y.updatedAt ? 1 : x.updatedAt > y.updatedAt ? -1 : 0));
+  return out;
+}
+
 // ---- recent thoughts ----
 
 export interface RecentThought {
@@ -291,6 +401,8 @@ export interface RecentThought {
   page: number | null;
   /** The highlight colour it hangs off, else null (a thought at a place). */
   color: Color | null;
+  /** The text of the highlight it hangs off, else null. */
+  quote: string | null;
   updatedAt: string;
 }
 
@@ -319,7 +431,8 @@ export async function recentThoughts(books: readonly ShelfBook[], source: BookSo
         if (!text) continue;
         const location = thoughtLocation(f, t);
         const anchor = t.anchorId ? f.annotations.find((a) => a.id === t.anchorId) : undefined;
-        found.push({ id: t.id, book, text, location, page: pageOf(location), color: anchor?.color ?? null, updatedAt: t.updatedAt });
+        const quote = anchor ? anchor.quote.replace(/\s+/g, ' ').trim() || null : null;
+        found.push({ id: t.id, book, text, location, page: pageOf(location), color: anchor?.color ?? null, quote, updatedAt: t.updatedAt });
       }
     }
     found.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0));

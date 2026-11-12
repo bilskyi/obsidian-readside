@@ -19,6 +19,9 @@ import {
   searchBooks,
   searchOrder,
   shelfBooks,
+  shelfNotes,
+  ALL_NOTES,
+  type NoteFilter,
   summaryLine,
   whereLabel,
   type BookSource,
@@ -28,6 +31,7 @@ import {
   type SearchGroup,
   type ShelfBook,
 } from './shelfData';
+import { ShelfNotes } from './ShelfNotes';
 import './shelf.css';
 
 /** What the shelf reads from the plugin. */
@@ -58,7 +62,11 @@ export interface ShelfVisibility {
 export interface ShelfState {
   query: string;
   scroll: number;
+  /** The books, or every highlight and thought (absent: the books). */
+  view?: ShelfViewName;
 }
+
+export type ShelfViewName = 'books' | 'notes';
 
 /** Where a book opens: false replaces the shelf in its tab; a pane type (⌘/Ctrl- or middle-click) opens a new one. */
 export type OpenIn = PaneType | false;
@@ -231,6 +239,42 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
   }, [debounced, books, source, version]);
   const searching = query.trim() !== '';
 
+  // ---- highlights & thoughts: every book with any is read, a chunk at a time, while that view shows ----
+  const [view, setView] = useState<ShelfViewName>(initialState?.view ?? 'books');
+  const [noteFilter, setNoteFilter] = useState<NoteFilter>(ALL_NOTES);
+  /** Bumped as chunks of books are read; `done` once every one has been. */
+  const [notesRead, setNotesRead] = useState<{ tick: number; done: boolean } | null>(null);
+  const showNotes = view === 'notes' && !searching;
+  useEffect(() => {
+    if (!showNotes) return;
+    let current = true;
+    const stop = () => !current || !alive.current;
+    const store = loaded.current;
+    const order = searchOrder(books);
+    setNotesRead(null);
+    void (async () => {
+      if (order.length === 0) return setNotesRead({ tick: 0, done: true });
+      for (let i = 0; i < order.length; i += SEARCH_CHUNK) {
+        await loadBooks(source, order.slice(i, i + SEARCH_CHUNK), store, stop);
+        if (stop()) return;
+        setNotesRead({ tick: i, done: i + SEARCH_CHUNK >= order.length });
+      }
+    })();
+    return () => {
+      current = false;
+    };
+  }, [showNotes, books, source, version]);
+  const notes = useMemo(
+    () => (notesRead === null ? null : shelfNotes(books, loaded.current, noteFilter)),
+    // `notesRead` stands for what has been read into loaded.current.
+    [notesRead, books, noteFilter],
+  );
+  const booksWithNotes = useMemo(() => books.filter((b) => !b.missing && (b.annotationCount ?? 1) + (b.thoughtCount ?? 0) > 0), [books]);
+  const seeAllThoughts = () => {
+    setNoteFilter({ ...ALL_NOTES, kind: 'thoughts' });
+    setView('notes');
+  };
+
   // ---- what Back restores ----
   const scroller = useRef<HTMLDivElement | null>(null);
   const scrollTop = useRef(initialState?.scroll ?? 0);
@@ -239,8 +283,8 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
   const onStateRef = useRef(onStateChange);
   onStateRef.current = onStateChange;
   useEffect(() => {
-    onStateRef.current?.({ query, scroll: scrollTop.current });
-  }, [query]);
+    onStateRef.current?.({ query, scroll: scrollTop.current, view });
+  }, [query, view]);
 
   // ---- recent thoughts and a highlight from a while ago: after the first paint, in the background ----
   const [recent, setRecent] = useState<Loadable<RecentThought[]>>(null);
@@ -332,7 +376,7 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
       ref={scroller}
       onScroll={(e) => {
         scrollTop.current = e.currentTarget.scrollTop;
-        onStateRef.current?.({ query, scroll: scrollTop.current });
+        onStateRef.current?.({ query, scroll: scrollTop.current, view });
       }}
     >
       <header className="shelf-header">
@@ -372,12 +416,32 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
         </div>
       </header>
 
+      {!searching && (
+        <div className="shelf-tabs" role="group" aria-label="Show">
+          <button type="button" className="shelf-tab" aria-pressed={view === 'books'} onClick={() => setView('books')}>
+            Books <span className="shelf-tab-count">{books.length}</span>
+          </button>
+          <button type="button" className="shelf-tab" aria-pressed={view === 'notes'} onClick={() => setView('notes')}>
+            Highlights &amp; thoughts
+          </button>
+        </div>
+      )}
       {/* Always there, so screen readers hear each change of it (a region that appears with its text may be missed). */}
       <p className={searching ? 'shelf-quiet shelf-status' : 'shelf-visually-hidden'} role="status">
         {status}
       </p>
       {searching ? (
         <SearchResults results={resultsFor?.groups ?? null} onOpen={onOpen} />
+      ) : showNotes ? (
+        <ShelfNotes
+          notes={notes}
+          done={notesRead?.done ?? false}
+          books={booksWithNotes}
+          filter={noteFilter}
+          onFilter={setNoteFilter}
+          open={(book, location) => opener((openIn) => onOpen(book.path, location, openIn))}
+          now={now}
+        />
       ) : (
         <>
           <section className="shelf-books" aria-labelledby={`${searchId}-books`}>
@@ -394,9 +458,16 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
           </section>
           <div className="shelf-lower">
             <section className="shelf-panel" aria-labelledby={`${searchId}-recent`}>
-              <h2 id={`${searchId}-recent`} className="shelf-panel-title">
-                Recent thoughts
-              </h2>
+              <div className="shelf-panel-head">
+                <h2 id={`${searchId}-recent`} className="shelf-panel-title">
+                  Recent thoughts
+                </h2>
+                {recent !== null && recent.length > 0 && (
+                  <button type="button" className="shelf-link" onClick={seeAllThoughts}>
+                    See all
+                  </button>
+                )}
+              </div>
               {recent === null ? (
                 <p className="shelf-quiet">Loading…</p>
               ) : recent.length === 0 ? (
@@ -409,6 +480,7 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
                         <span className="shelf-recent-bar" aria-hidden="true" style={{ '--bar': r.color ? `var(--hl-${r.color}-ink)` : 'var(--ink)' } as CSSProperties} />
                         <span className="shelf-recent-body">
                           <span className="shelf-meta">{where(r.book.title, r.location)}</span>
+                          {r.quote && <span className="shelf-recent-quote">“{r.quote}”</span>}
                           <span className="shelf-recent-text">{r.text}</span>
                         </span>
                       </button>

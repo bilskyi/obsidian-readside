@@ -16,6 +16,8 @@ import {
   searchBooks,
   searchOrder,
   shelfBooks,
+  shelfNotes,
+  ALL_NOTES,
   snippetAround,
   summaryLine,
   whereLabel,
@@ -305,5 +307,60 @@ describe('shelf: EPUB books (E7)', () => {
     expect(placeOf(pdfLocation({ page: 4, start: 0, end: 1 }))).toBe('p. 4');
     expect(placeOf(epubLocation({ section: 6, start: 0, end: 1 }))).toBe('§ 6');
     expect(placeOf(null)).toBeNull();
+  });
+});
+
+describe('shelfNotes: highlights & thoughts across books', () => {
+  const T = (d: number) => `2026-02-${String(d).padStart(2, '0')}T00:00:00.000Z`;
+  const a = book('a', { updatedAt: T(20) });
+  const b = book('b', { updatedAt: T(10) });
+  const gone = book('gone', { missing: true });
+  const loaded: LoadedBooks = new Map([
+    ['a', file('a', {
+      annotations: [
+        { quote: 'second  place', location: pdf(9), color: 'green', createdAt: T(1), updatedAt: T(1) },
+        { quote: 'first place', location: pdf(2), color: 'pink', note: ' a note ', createdAt: T(2), updatedAt: T(2) },
+      ],
+      thoughts: [
+        { body: '**later** thought', anchorId: 'a-h0', createdAt: T(8), updatedAt: T(8) },
+        { body: 'at a place', location: pdf(5), createdAt: T(3), updatedAt: T(3) },
+        { body: '   ', anchorId: 'a-h1', createdAt: T(4), updatedAt: T(30) },
+      ],
+    })],
+    ['b', file('b', { annotations: [{ quote: 'b quote', location: pdf(1), color: 'yellow', createdAt: T(5), updatedAt: T(5) }] })],
+    ['gone', file('gone', { annotations: [{ quote: 'hidden' }] })],
+  ]);
+  const ids = (ns: ReturnType<typeof shelfNotes>) => ns.map((n) => n.id);
+
+  it('a highlight carries its note and its thoughts; a thought at a place stands alone; empty thoughts and missing books are left out', () => {
+    const ns = shelfNotes([a, b, gone], loaded, ALL_NOTES);
+    expect(ns).toHaveLength(4);
+    const h0 = ns.find((n) => n.id === 'a-h0')!;
+    expect(h0).toMatchObject({ quote: 'second place', color: 'green', note: null, thoughts: [{ id: 'a-t0', text: 'later thought' }], updatedAt: T(8) });
+    expect(ns.find((n) => n.id === 'a-h1')).toMatchObject({ note: 'a note', thoughts: [] });
+    expect(ns.find((n) => n.id === 'a-t1')).toMatchObject({ quote: null, color: null, thoughts: [{ id: 'a-t1', text: 'at a place' }], page: 5 });
+  });
+
+  it('newest change first across books (a thought makes its highlight newer)', () => {
+    expect(ids(shelfNotes([a, b], loaded, ALL_NOTES))).toEqual(['a-h0', 'b-h0', 'a-t1', 'a-h1']);
+  });
+
+  it('by book: shelf order, then reading order within a book', () => {
+    expect(ids(shelfNotes([a, b], loaded, { ...ALL_NOTES, sort: 'book' }))).toEqual(['a-h1', 'a-t1', 'a-h0', 'b-h0']);
+  });
+
+  it('filters by kind, colour and book', () => {
+    expect(ids(shelfNotes([a, b], loaded, { ...ALL_NOTES, kind: 'highlights' }))).toEqual(['a-h0', 'b-h0', 'a-h1']);
+    expect(ids(shelfNotes([a, b], loaded, { ...ALL_NOTES, kind: 'notes' }))).toEqual(['a-h1']);
+    expect(ids(shelfNotes([a, b], loaded, { ...ALL_NOTES, kind: 'thoughts' }))).toEqual(['a-h0', 'a-t1']);
+    // A colour leaves out thoughts at a place (they have none).
+    expect(ids(shelfNotes([a, b], loaded, { ...ALL_NOTES, colors: ['pink', 'yellow'] }))).toEqual(['b-h0', 'a-h1']);
+    expect(ids(shelfNotes([a, b], loaded, { ...ALL_NOTES, bookId: 'b' }))).toEqual(['b-h0']);
+  });
+
+  it('a recent thought says which highlight it hangs off', async () => {
+    const files = [file('a', { annotations: [{ quote: 'the  quote' }], thoughts: [{ body: 'on it', anchorId: 'a-h0' }, { body: 'free', location: pdf(3) }] })];
+    const recent = await recentThoughts([book('a')], sourceOf(files), new Map());
+    expect(recent.map((r) => [r.text, r.quote])).toEqual(expect.arrayContaining([['on it', 'the quote'], ['free', null]]));
   });
 });

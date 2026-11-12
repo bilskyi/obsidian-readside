@@ -238,10 +238,9 @@ describe('recent thoughts and a highlight from a while ago', () => {
     await p.openShelf();
     const recent = await screen.findByRole('region', { name: 'Recent thoughts' });
     await within(recent).findByText('Thought number 6');
-    expect(within(recent).getAllByRole('button').map((b) => b.textContent)).toEqual(
-      [6, 5, 4, 3, 2].map((i) => `Book A · p. 4Thought number ${i}`),
-    );
-    fireEvent.click(within(recent).getAllByRole('button')[0]);
+    const items = () => within(recent).getAllByRole('button').filter((b) => b.textContent !== 'See all');
+    expect(items().map((b) => b.textContent)).toEqual([6, 5, 4, 3, 2].map((i) => `Book A · p. 4Thought number ${i}`));
+    fireEvent.click(items()[0]);
     expect(open).toHaveBeenLastCalledWith(app.vault.getFileByPath('Books/A.pdf'), parseLocation(pdfLoc(4)), false);
 
     const old = screen.getByRole('region', { name: 'From your shelf, a while ago' });
@@ -254,6 +253,59 @@ describe('recent thoughts and a highlight from a while ago', () => {
     expect(within(old).getByText(new RegExp(`^Book A · p\\. ${page} · highlighted \\d+ (weeks|months) ago$`))).toBeTruthy();
     fireEvent.click(within(old).getByRole('button', { name: 'Open at this spot' }));
     expect(open).toHaveBeenLastCalledWith(app.vault.getFileByPath('Books/A.pdf'), parseLocation(pdfLoc(page)), false);
+  });
+});
+
+describe('highlights & thoughts on the shelf', () => {
+  const T = '2026-03-01T10:00:00.000Z';
+  const later = '2026-03-02T10:00:00.000Z';
+  const books = [
+    bookFile('b1', 'Books/A.pdf', 'Book A', {
+      annotations: [
+        { id: 'h1', bookId: 'b1', location: pdfLoc(3), quote: 'The mass of men', color: 'green', note: 'Thoreau at his bleakest', unanchored: false, createdAt: T, updatedAt: T },
+        { id: 'h2', bookId: 'b1', location: pdfLoc(7), quote: 'Simplify, simplify', color: 'pink', note: null, unanchored: false, createdAt: T, updatedAt: T },
+      ],
+      thoughts: [
+        { id: 't1', bookId: 'b1', body: 'Still true', anchorId: 'h2', location: null, position: 1, createdAt: later, updatedAt: later, labelSection: null, labelSnippet: null, labelCustom: null },
+      ],
+    }),
+  ];
+  const index = { 'Books/A.pdf': { bookId: 'b1', fingerprint: '1:a', missing: false, summary: summary({ title: 'Book A', annotationCount: 2, thoughtCount: 1, updatedAt: later }) } };
+
+  it('lists every highlight with its note and thoughts, filters them, and opens the book at the spot', async () => {
+    const p = await setup({ books, index });
+    const open = vi.spyOn(p, 'openInMargin').mockResolvedValue();
+    await p.openShelf();
+    fireEvent.click(await screen.findByRole('button', { name: 'Highlights & thoughts' }));
+    const list = await screen.findByRole('region', { name: 'Highlights and thoughts' });
+    await within(list).findByText('Simplify, simplify');
+    // Newest first: the highlight with the newer thought leads, the thought shown under it.
+    const entries = () => within(list).queryAllByRole('listitem').map((li) => li.textContent);
+    expect(entries()[0]).toContain('Simplify, simplify');
+    expect(entries()[0]).toContain('Still true');
+    expect(entries()[1]).toContain('Thoreau at his bleakest');
+
+    fireEvent.click(within(list).getByRole('button', { name: 'Notes' }));
+    expect(entries()).toHaveLength(1);
+    fireEvent.click(within(list).getByRole('button', { name: 'All' }));
+    fireEvent.click(within(list).getByRole('button', { name: 'Show pink' }));
+    expect(entries()).toHaveLength(1);
+    expect(entries()[0]).toContain('Simplify, simplify');
+
+    fireEvent.click(within(list).getByText('Simplify, simplify'));
+    expect(open).toHaveBeenLastCalledWith(app.vault.getFileByPath('Books/A.pdf'), parseLocation(pdfLoc(7)), false);
+  });
+
+  it('a recent thought shows its highlight, and See all opens the list at the thoughts', async () => {
+    const p = await setup({ books, index });
+    await p.openShelf();
+    const recent = await screen.findByRole('region', { name: 'Recent thoughts' });
+    await within(recent).findByText('“Simplify, simplify”');
+    fireEvent.click(within(recent).getByRole('button', { name: 'See all' }));
+    const list = await screen.findByRole('region', { name: 'Highlights and thoughts' });
+    expect(within(list).getByRole('button', { name: 'Thoughts' }).getAttribute('aria-pressed')).toBe('true');
+    await within(list).findByText('Still true');
+    expect(within(list).getAllByRole('listitem')).toHaveLength(1);
   });
 });
 
@@ -786,7 +838,7 @@ describe('the shelf names an EPUB’s places by section (E7)', () => {
     await p.openShelf();
     const recent = await screen.findByRole('region', { name: 'Recent thoughts' });
     await within(recent).findByText('Whale thought');
-    expect(within(recent).getByRole('button').textContent).toBe('Moby-Dick · § 7Whale thought');
+    expect(within(recent).getByRole('button', { name: /Whale thought/ }).textContent).toBe('Moby-Dick · § 7Whale thought');
     const old = screen.getByRole('region', { name: 'From your shelf, a while ago' });
     expect(await within(old).findByText(/Moby-Dick · § 5 · highlighted/)).toBeTruthy();
     expect(await screen.findByRole('button', { name: /Moby-Dick, 30%/ })).toBeTruthy();
