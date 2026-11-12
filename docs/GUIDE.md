@@ -22,7 +22,7 @@ Books are PDFs and EPUBs.
 
 - The ribbon book icon, "Open Readside shelf": the shelf of your books (with covers), and its "Open a book…"
   picker of the vault's PDFs and EPUBs, recent books first.
-- Command "Open current book in Readside" while a PDF or EPUB is the active file.
+- Command "Readside: Open current book" while a PDF or EPUB is the active file.
 - Right-click a book in the file explorer: "Open in Readside".
 - Right-click a `[[file.pdf]]` or `[[file.epub]]` link in a note: "Open in Readside".
 - Setting "Open PDFs in Readside" (off by default): a PDF that opens in Obsidian's viewer, in the active tab,
@@ -82,7 +82,7 @@ for Readside. Bind any command there if you want a global hotkey:
 
 | Command | Id | In-view key (macOS) |
 | --- | --- | --- |
-| Open current book in Readside | `open-current-pdf` | none |
+| Open current book | `open-current-pdf` | none |
 | Add thought at reading line | `new-thought` | ⌘⇧M |
 | Toggle notebook | `toggle-notebook` | ⌘\ |
 | Toggle contents | `toggle-contents` | ⌘⇧C |

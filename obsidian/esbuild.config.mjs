@@ -6,7 +6,7 @@ import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scopeCss } from './src/css/scope.ts';
-import { MAIN_JS_BUDGET, MPL_NOTICE, buildOptions } from './scripts/buildOptions.mjs';
+import { MAIN_JS_BUDGET, MPL_NOTICE, buildOptions, createsScriptElement } from './scripts/buildOptions.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, 'dist');
@@ -55,8 +55,14 @@ if (watch) {
     process.exit(1);
   }
   // The vendored Bergamot glue is MPL-2.0: its header must ship with it, verbatim.
-  if (production && !(await readFile(join(dist, 'main.js'), 'utf8')).includes(MPL_NOTICE)) {
+  const js = await readFile(join(dist, 'main.js'), 'utf8');
+  if (production && !js.includes(MPL_NOTICE)) {
     console.error('margin: main.js lacks the MPL-2.0 header of the vendored Bergamot glue');
+    process.exit(1);
+  }
+  // Obsidian's plugin review rejects runtime script injection.
+  if (createsScriptElement(js)) {
+    console.error("margin: main.js contains createElement('script')");
     process.exit(1);
   }
 }

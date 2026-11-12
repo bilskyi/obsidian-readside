@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 // @ts-expect-error plain .mjs build helper without types
-import { MAIN_JS_BUDGET, MPL_NOTICE, buildOptions } from '../scripts/buildOptions.mjs';
+import { MAIN_JS_BUDGET, MPL_NOTICE, buildOptions, createsScriptElement } from '../scripts/buildOptions.mjs';
 
 const out = mkdtempSync(join(tmpdir(), 'margin-bundle-'));
 afterAll(() => rmSync(out, { recursive: true, force: true }));
@@ -21,7 +21,16 @@ describe('main.js (production bundle, as pnpm build:obsidian makes it)', () => {
     // The translate host is wired: its strings are in the bundle (not tree-shaken away).
     expect(js).toContain("Readside couldn't start the translation engine");
     expect(Buffer.byteLength(js)).toBeLessThanOrEqual(MAIN_JS_BUDGET);
+    // Obsidian's plugin review rejects createElement('script'); React DOM's paths are stubbed out.
+    expect(createsScriptElement(js)).toBe(false);
+    expect(js).toContain('Readside: script elements are disabled');
   }, 60_000);
+
+  it('detects a script element however it is quoted', () => {
+    expect(createsScriptElement('d.createElement("script")')).toBe(true);
+    expect(createsScriptElement("d.createElement('script')")).toBe(true);
+    expect(createsScriptElement('d.createElement("div")')).toBe(false);
+  });
 
   it('obsidian/dist/main.js, when built, has the header too', () => {
     const dist = join(__dirname, '..', 'dist', 'main.js');

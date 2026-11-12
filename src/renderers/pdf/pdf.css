@@ -12,6 +12,10 @@
 /* margin-left is the renderer's (pageLane: centred, room for the margin column, both sides scrollable
    when zoomed); auto only until the book has opened. */
 .pdf-page {
+  /* pdf.js's text layer reads these; the per-viewport scale variables are set by PdfRenderer. */
+  --user-unit: 1;
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
   position: relative;
   margin: 0 auto 16px;
   background: white;

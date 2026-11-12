@@ -1037,11 +1037,11 @@ describe('MarginPlugin: EPUBs (E7)', () => {
     expect(ed.items.map((i) => i.title)).toEqual(['Open in Readside']);
   });
 
-  it('"Open current book in Readside" (id open-current-pdf) works for an active EPUB', async () => {
+  it('"Open current book" (id open-current-pdf) works for an active EPUB', async () => {
     const p = await setup();
     addMoby();
     const cmd = p.command('open-current-pdf');
-    expect(cmd.name).toBe('Open current book in Readside');
+    expect(cmd.name).toBe('Open current book');
     await openIn('markdown', 'Books/Moby.epub');
     expect(cmd.checkCallback!(true)).toBe(true);
   });

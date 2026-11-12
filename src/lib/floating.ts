@@ -98,7 +98,6 @@ export function fixedOrigin(el: Element | null): { x: number; y: number } {
   const probe = parent.ownerDocument.createElement('div');
   probe.className = 'fixed-origin-probe';
   probe.setAttribute('aria-hidden', 'true');
-  probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;margin:0;padding:0;border:0;visibility:hidden;pointer-events:none';
   parent.appendChild(probe);
   try {
     const r = probe.getBoundingClientRect();

@@ -395,6 +395,20 @@ body { background: var(--window); color: var(--text); overflow: hidden; }
 }
 
 /* ---------- Selection popover (HUD, same in both modes) ---------- */
+/* src/lib/floating.ts fixedOrigin(): a zero-size fixed box that finds where position: fixed starts. */
+.fixed-origin-probe {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .popover {
   z-index: 10;
   width: max-content;

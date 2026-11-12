@@ -138,7 +138,8 @@ export class EpubRenderer implements RendererAdapter {
   private scroller: HTMLDivElement;
   /** `.margin-epub[data-book]`: the scope every injected selector starts with. */
   private bookEl: HTMLDivElement;
-  private styleEl: HTMLStyleElement | null = null;
+  /** The book's scoped CSS, adopted by the document while the book is open. */
+  private sheet: CSSStyleSheet | null = null;
   private marginEl: HTMLDivElement;
   private extentEl: HTMLDivElement;
   private readonly bookId: number;
@@ -277,10 +278,7 @@ export class EpubRenderer implements RendererAdapter {
       this.sections.push(ps);
     }
     if (this.closed) return;
-    const style = document.createElement('style');
-    style.textContent = css.filter(Boolean).join('\n');
-    this.bookEl.prepend(style);
-    this.styleEl = style;
+    this.adoptBookCss(css.filter(Boolean).join('\n'));
     this.large = chars > LARGE_BOOK_CHARS;
     // Before the first fit: a margin width set from this size (setMarginWidth) is in the fit below.
     try {
@@ -616,8 +614,7 @@ export class EpubRenderer implements RendererAdapter {
     this.urls.forEach((u) => URL.revokeObjectURL(u));
     this.urls.clear();
     this.fontUrls.clear();
-    this.styleEl?.remove();
-    this.styleEl = null;
+    this.dropBookCss();
     this.selectionEm.clear();
     this.locationEm.clear();
     this.clickEm.clear();
@@ -663,6 +660,27 @@ export class EpubRenderer implements RendererAdapter {
       fn();
     }, ms);
     this.timers.add(t);
+  }
+
+  /**
+   * Adopts the book's scoped CSS as a constructed stylesheet of the reader's document (the window it is
+   * shown in, which may be a popout). Obsidian's plugin review disallows <style> elements.
+   */
+  private adoptBookCss(text: string): void {
+    const doc = this.bookEl.ownerDocument;
+    const Sheet = doc.defaultView?.CSSStyleSheet ?? CSSStyleSheet;
+    const sheet = new Sheet();
+    sheet.replaceSync(text);
+    doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
+    this.sheet = sheet;
+  }
+
+  private dropBookCss(): void {
+    const sheet = this.sheet;
+    if (!sheet) return;
+    const doc = this.bookEl.ownerDocument;
+    doc.adoptedStyleSheets = doc.adoptedStyleSheets.filter((s) => s !== sheet);
+    this.sheet = null;
   }
 
   private createSection(section: number, href: string, root: HTMLElement, images: SectionState['images']): SectionState {

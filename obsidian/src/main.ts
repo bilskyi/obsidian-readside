@@ -472,7 +472,7 @@ export default class MarginPlugin extends Plugin {
     this.addCommand({ id: 'open-shelf', name: SHELF_TITLE_COMMAND, callback: () => void this.openShelf() });
     this.addCommand({
       id: 'open-current-pdf',
-      name: 'Open current book in Readside',
+      name: 'Open current book',
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         if (!isBook(file)) return false;

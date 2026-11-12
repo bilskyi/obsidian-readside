@@ -19,8 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-Note: the vendored Bergamot translator glue
-(obsidian/src/translate/vendor/bergamot-translator.js) is not covered by this
-licence; it is licensed under the Mozilla Public License 2.0 (see its header
-and THIRD_PARTY_NOTICES).

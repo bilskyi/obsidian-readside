@@ -612,15 +612,12 @@ export class PdfRenderer implements RendererAdapter {
     };
   }
 
-  /** Sizes a page box and sets the CSS variables pdf.js's text layer reads for this viewport. */
+  /** Sizes a page box and sets the CSS variables pdf.js's text layer reads for this viewport (the fixed ones are on `.pdf-page` in pdf.css). */
   private sizePage(el: HTMLDivElement, viewport: Viewport): void {
     el.style.width = `${viewport.width}px`;
     el.style.height = `${viewport.height}px`;
     el.style.setProperty('--scale-factor', String(viewport.scale));
-    el.style.setProperty('--user-unit', '1');
     el.style.setProperty('--total-scale-factor', String(viewport.scale));
-    el.style.setProperty('--scale-round-x', '1px');
-    el.style.setProperty('--scale-round-y', '1px');
   }
 
   /**
