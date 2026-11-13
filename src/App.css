@@ -300,7 +300,8 @@ body { background: var(--window); color: var(--text); overflow: hidden; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.reader-host { flex: 1; min-width: 0; min-height: 0; }
+/* Clips the scroller while a pinch scales it (pinch.ts); the desk shows around a page zoomed out. */
+.reader-host { flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--desk, transparent); }
 /* The reading column: the page area plus what overlays only it (the search bar), beside the panels. */
 .reader-column { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; }
 .notice { padding: 24px; color: var(--text-2); }

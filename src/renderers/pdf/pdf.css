@@ -1,5 +1,7 @@
 .pdf-scroller {
   position: relative;
+  /* Two-finger pinches are the reader's (pinch.ts); one finger still scrolls natively. */
+  touch-action: pan-x pan-y;
   overflow: auto;
   /* Always reserve the vertical scrollbar's room so a re-fit cannot toggle it and change the width.
      overflow-y: scroll is the fallback for WebKit without scrollbar-gutter (Safari < 18.2). */
@@ -25,6 +27,9 @@
 .pdf-page canvas {
   position: absolute;
   inset: 0;
+  /* The page box is the viewport's size; a canvas kept from before a zoom stretches to it until redrawn. */
+  width: 100%;
+  height: 100%;
   border-radius: 2px;
 }
 .pdf-page .hl-layer {
@@ -187,4 +192,12 @@
 .pdf-page.is-unreadable .pdf-page-note {
   position: absolute; inset: 0; display: grid; place-items: center;
   color: var(--text-2); font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* A pinch or zoom step in progress (pinch.ts): the scroller is scaled around the pinch point until the
+   real zoom is applied. Shared by EPUB, which uses the same scroller. */
+.pdf-scroller.is-pinching {
+  transform: translate(var(--pinch-x, 0px), var(--pinch-y, 0px)) scale(var(--pinch-scale, 1));
+  transform-origin: var(--pinch-ox, 50%) var(--pinch-oy, 0px);
+  will-change: transform;
 }

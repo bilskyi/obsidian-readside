@@ -130,8 +130,11 @@ export interface RendererAdapter {
    */
   onPageLayout(cb: (layout: PageLayout) => void): Unsubscribe;
   getZoom(): ZoomState;
-  /** Before open: remembered and used by open(). After: re-lays out keeping the reading line (or `anchor`) in place. */
-  setZoom(zoom: Zoom, opts?: { anchor?: { clientX: number; clientY: number } }): void;
+  /**
+   * Before open: remembered and used by open(). After: re-lays out keeping the reading line (or `anchor`) in
+   * place. `smooth` (a percentage from a zoom button or key) animates there first, unless motion is reduced.
+   */
+  setZoom(zoom: Zoom, opts?: { anchor?: { clientX: number; clientY: number }; smooth?: boolean }): void;
   onZoomChange(cb: (zoom: ZoomState) => void): Unsubscribe;
   /** Streams one batch per page, from `fromPage` (default: the current page) and wrapping; ends quietly when aborted. */
   search(query: string, opts?: { signal?: AbortSignal; fromPage?: number }): AsyncIterable<SearchBatch>;

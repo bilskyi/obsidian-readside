@@ -363,8 +363,9 @@ export function useReaderRenderer(
     rendererRef.current?.paintHighlights(annotations);
   }, []);
 
+  // Zoom asked for in the UI (buttons, keys, the menu) animates; the renderer applies a fit mode at once.
   const setZoom = useCallback((z: Zoom, opts?: { anchor?: { clientX: number; clientY: number } }) => {
-    rendererRef.current?.setZoom(z, opts);
+    rendererRef.current?.setZoom(z, { ...opts, smooth: true });
   }, []);
 
   const readingLinePoint = useCallback(async () => {

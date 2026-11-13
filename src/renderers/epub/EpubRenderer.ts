@@ -41,7 +41,8 @@ import {
 } from '../pdf/layout';
 import { nearestLine, type LineBox } from '../pdf/lines';
 import { indexText, pointToOffset, rangeToPageOffsets, type Segment, type TextIndex } from '../pdf/textOffsets';
-import { clampZoom, GESTURE_STALE_MS, percentOf, PINCH_APPLY_MS, pinchZoom, wheelDeltaPx, ZOOM_MAX, ZOOM_MIN } from '../pdf/zoom';
+import { clampZoom, percentOf } from '../pdf/zoom';
+import { bindPinch, type PinchControl } from '../pinch';
 import { bookBudget } from './budget';
 import { imageAllowed } from './imageInfo';
 import { openEpub, type EpubPackage, type EpubTocEntry } from './epubPackage';
@@ -207,7 +208,8 @@ export class EpubRenderer implements RendererAdapter {
   private column = EPUB_COLUMN;
   private layoutQueued = false;
   private outline: OutlineEntry[] | null = null;
-  private cancelPinch: () => void = () => {};
+  /** Pinch and animated zoom (set by bindEvents); a no-op before then. */
+  private pinch: PinchControl = { animateTo: () => {}, cancel: () => {}, active: () => false, dispose: () => {} };
   private annotations: PaintableAnnotation[] = [];
   /** `annotations` that anchor in this book, by section: grouped once per paintHighlights. */
   private bySection = new Map<number, PaintableAnnotation[]>();
@@ -591,9 +593,13 @@ export class EpubRenderer implements RendererAdapter {
     return { zoom: this.zoom, percent };
   }
 
-  setZoom(zoom: Zoom, opts: { anchor?: Anchor } = {}): void {
+  setZoom(zoom: Zoom, opts: { anchor?: Anchor; smooth?: boolean } = {}): void {
     if (this.closed || (typeof zoom === 'number' && !Number.isFinite(zoom))) return;
-    this.cancelPinch();
+    if (opts.smooth && typeof zoom === 'number' && this.ready) {
+      this.pinch.animateTo(zoom, opts.anchor);
+      return;
+    }
+    this.pinch.cancel();
     this.applyZoom(zoom, opts.anchor);
   }
 
@@ -1380,64 +1386,16 @@ export class EpubRenderer implements RendererAdapter {
       this.followLink(t);
     };
 
-    // Trackpad pinch (ctrl+wheel; WebKit gesture events), applied at most every PINCH_APPLY_MS: as in PDF.
-    let pinch: { percent: number; at?: Anchor } | null = null;
-    let pinchTimer: ReturnType<typeof setTimeout> | undefined;
-    const applyPinch = () => {
-      pinchTimer = undefined;
-      const p = pinch;
-      pinch = null;
-      if (p) this.applyZoom(p.percent, p.at);
-    };
-    this.cancelPinch = () => {
-      if (pinchTimer !== undefined) clearTimeout(pinchTimer);
-      pinchTimer = undefined;
-      pinch = null;
-    };
-    const queuePinch = (percent: number, at?: Anchor) => {
-      pinch = { percent, at };
-      if (pinchTimer === undefined) pinchTimer = setTimeout(applyPinch, PINCH_APPLY_MS);
-    };
-    let gestureActive = false;
-    let gestureTimer: ReturnType<typeof setTimeout> | undefined;
-    const endGesture = () => {
-      gestureActive = false;
-      if (gestureTimer !== undefined) clearTimeout(gestureTimer);
-      gestureTimer = undefined;
-    };
-    const touchGesture = () => {
-      gestureActive = true;
-      if (gestureTimer !== undefined) clearTimeout(gestureTimer);
-      gestureTimer = setTimeout(endGesture, GESTURE_STALE_MS);
-    };
-    const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      if (gestureActive) return;
-      const base = pinch ? pinch.percent : percentOf(this.scale);
-      queuePinch(pinchZoom(base, wheelDeltaPx(e.deltaY, e.deltaMode, this.scroller.clientHeight)), {
-        clientX: e.clientX,
-        clientY: e.clientY,
-      });
-    };
-    let gestureBase = 100;
-    const onGestureStart = (e: Event) => {
-      e.preventDefault();
-      touchGesture();
-      gestureBase = percentOf(this.scale);
-    };
-    const onGestureChange = (e: Event) => {
-      e.preventDefault();
-      touchGesture();
-      const g = e as Event & { scale?: number; clientX?: number; clientY?: number };
-      const at = g.clientX !== undefined && g.clientY !== undefined ? { clientX: g.clientX, clientY: g.clientY } : undefined;
-      const scale = g.scale !== undefined && Number.isFinite(g.scale) && g.scale > 0 ? g.scale : 1;
-      queuePinch(clamp(gestureBase * scale, ZOOM_MIN, ZOOM_MAX), at);
-    };
-    const onGestureEnd = (e: Event) => {
-      e.preventDefault();
-      endGesture();
-    };
+    // Pinch (trackpad, touch, ctrl+wheel) and animated zoom steps: a scaled preview, then one re-layout.
+    this.pinch = bindPinch({
+      scroller: this.scroller,
+      percent: () => this.scale * 100,
+      readingAnchor: () => {
+        const r = this.scroller.getBoundingClientRect();
+        return { clientX: r.left + this.scroller.clientWidth / 2, clientY: r.top + readingLineY(this.scroller.clientHeight) };
+      },
+      commit: (percent, anchor) => this.applyZoom(percent, anchor),
+    });
 
     const s = this.scroller;
     s.addEventListener('scroll', onScroll);
@@ -1447,15 +1405,8 @@ export class EpubRenderer implements RendererAdapter {
     s.addEventListener('mousemove', onHover);
     s.addEventListener('mouseleave', onLeave);
     s.addEventListener('keydown', onKey);
-    s.addEventListener('wheel', onWheel, { passive: false });
-    s.addEventListener('gesturestart', onGestureStart);
-    s.addEventListener('gesturechange', onGestureChange);
-    s.addEventListener('gestureend', onGestureEnd);
-    s.addEventListener('pointerdown', endGesture);
     this.cleanup.push(() => {
       if (timer !== undefined) clearTimeout(timer);
-      if (pinchTimer !== undefined) clearTimeout(pinchTimer);
-      if (gestureTimer !== undefined) clearTimeout(gestureTimer);
       s.removeEventListener('scroll', onScroll);
       s.removeEventListener('click', onClick);
       s.removeEventListener('mouseup', onMouseUp);
@@ -1463,11 +1414,7 @@ export class EpubRenderer implements RendererAdapter {
       s.removeEventListener('mousemove', onHover);
       s.removeEventListener('mouseleave', onLeave);
       s.removeEventListener('keydown', onKey);
-      s.removeEventListener('wheel', onWheel);
-      s.removeEventListener('gesturestart', onGestureStart);
-      s.removeEventListener('gesturechange', onGestureChange);
-      s.removeEventListener('gestureend', onGestureEnd);
-      s.removeEventListener('pointerdown', endGesture);
+      this.pinch.dispose();
     });
   }
 }

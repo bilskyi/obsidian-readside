@@ -4,6 +4,7 @@ import { isPdfPoint, pdfLocation, pdfPoint, serializeLocation, spotOf } from '..
 import { watchTouchSelection } from '../../lib/touchSelection';
 import type { Location, OutlineEntry, PdfLocationValue } from '../../lib/types';
 import { Emitter } from '../emitter';
+import { bindPinch, type PinchControl } from '../pinch';
 import type {
   AnchorPoint,
   GoToOptions,
@@ -42,17 +43,7 @@ import { lineAtOffset, measureLines, nearestLine, type LineBox } from './lines';
 import { normalizeOutline } from './pdfOutline';
 import { searchPages, wrapOrder } from './search';
 import { indexText, joinTextItems, offsetsToRange, rangeToPageOffsets } from './textOffsets';
-import {
-  clampZoom,
-  GESTURE_STALE_MS,
-  percentOf,
-  PINCH_APPLY_MS,
-  pinchZoom,
-  scaleFor,
-  wheelDeltaPx,
-  ZOOM_MAX,
-  ZOOM_MIN,
-} from './zoom';
+import { clampZoom, percentOf, scaleFor } from './zoom';
 
 type Viewport = ReturnType<PDFPageProxy['getViewport']>;
 
@@ -67,6 +58,8 @@ interface PageState {
   task: RenderTask | null;
   textTask: TextLayer | null;
   canvas: HTMLCanvasElement | null;
+  /** The canvas from before a zoom, stretched to the new size until the new render is drawn (no blank flash). */
+  stale: HTMLCanvasElement | null;
   /** Bumped by releasePage so an in-flight doRender for the released generation bails out. */
   gen: number;
   ready: boolean;
@@ -122,8 +115,8 @@ export class PdfRenderer implements RendererAdapter {
   private layoutQueued = false;
   private searchHits = new Map<number, SearchHit[]>();
   private currentHit: SearchHit | null = null;
-  /** Drops a pinch waiting to be applied (set by bindEvents). */
-  private cancelPinch: () => void = () => {};
+  /** Pinch and animated zoom (set by bindEvents); a no-op before then. */
+  private pinch: PinchControl = { animateTo: () => {}, cancel: () => {}, active: () => false, dispose: () => {} };
   /** Room (px) kept free right of the pages for the margin column (setMarginWidth). */
   private marginWidth = 0;
   /** The margin column's layer: a child of the scroller, so it shares the pages' coordinates and scroll. */
@@ -358,14 +351,18 @@ export class PdfRenderer implements RendererAdapter {
     return { zoom: this.zoom, percent };
   }
 
-  setZoom(zoom: Zoom, opts: { anchor?: { clientX: number; clientY: number } } = {}): void {
+  setZoom(zoom: Zoom, opts: { anchor?: { clientX: number; clientY: number }; smooth?: boolean } = {}): void {
     if (this.closed || (typeof zoom === 'number' && !Number.isFinite(zoom))) return;
-    // An explicit choice (⌘0, ⌘+/⌘−, the menu) wins over a pinch still waiting to be applied.
-    this.cancelPinch();
+    if (opts.smooth && typeof zoom === 'number' && this.baseWidth) {
+      this.pinch.animateTo(zoom, opts.anchor);
+      return;
+    }
+    // An explicit choice (⌘0, the menu) wins over a pinch on screen.
+    this.pinch.cancel();
     this.applyZoom(zoom, opts.anchor);
   }
 
-  /** setZoom without cancelling a pending pinch: the pinch applier's path. */
+  /** setZoom without touching the pinch: the pinch's commit path. */
   private applyZoom(zoom: Zoom, anchor?: { clientX: number; clientY: number }): void {
     if (this.closed || (typeof zoom === 'number' && !Number.isFinite(zoom))) return;
     this.zoom = typeof zoom === 'number' ? clampZoom(zoom) : zoom;
@@ -606,6 +603,7 @@ export class PdfRenderer implements RendererAdapter {
       task: null,
       textTask: null,
       canvas: null,
+      stale: null,
       gen: 0,
       ready: false,
       lines: null,
@@ -710,7 +708,11 @@ export class PdfRenderer implements RendererAdapter {
     const span = () => ({ left: anchorPage.el.offsetLeft, width: anchorPage.el.offsetWidth });
     const fx = anchorPage ? captureX(span(), this.scroller.scrollLeft, anchorX) : 0.5;
     for (const ps of this.pages) {
+      // A drawn page keeps its old picture (CSS stretches it to the new size) until it is drawn again.
+      const keep = ps.ready ? ps.canvas : null;
+      if (keep) ps.canvas = null;
       this.releasePage(ps);
+      if (keep) ps.stale = keep;
       ps.viewport = ps.viewport.clone({ scale });
       this.sizePage(ps.el, ps.viewport);
     }
@@ -783,8 +785,6 @@ export class PdfRenderer implements RendererAdapter {
       const canvas = document.createElement('canvas');
       canvas.width = Math.floor(ps.viewport.width * dpr);
       canvas.height = Math.floor(ps.viewport.height * dpr);
-      canvas.style.width = `${ps.viewport.width}px`;
-      canvas.style.height = `${ps.viewport.height}px`;
       ps.canvas = canvas;
       // null when WebKit refuses a new canvas backing store (memory cap): a render failure.
       const ctx = canvas.getContext('2d');
@@ -800,6 +800,7 @@ export class PdfRenderer implements RendererAdapter {
       await task.promise;
       if (stale()) return;
       ps.task = null;
+      this.dropStale(ps);
       const textLayer = new (pdfjs().TextLayer)({
         textContentSource: page.streamTextContent(),
         container: ps.textLayer,
@@ -852,6 +853,7 @@ export class PdfRenderer implements RendererAdapter {
 
   /** Releases a rendered (or rendering) page's canvas and layers; it renders again on re-entry. textCache stays. */
   private releasePage(ps: PageState): void {
+    this.dropStale(ps);
     if (!ps.rendering && !ps.ready && !ps.canvas) return;
     ps.gen++;
     try {
@@ -875,6 +877,15 @@ export class PdfRenderer implements RendererAdapter {
     ps.ready = false;
     ps.rendering = null;
     this.queueLayout();
+  }
+
+  private dropStale(ps: PageState): void {
+    const c = ps.stale;
+    if (!c) return;
+    c.width = 0;
+    c.height = 0;
+    c.remove();
+    ps.stale = null;
   }
 
   private dropCanvas(ps: PageState): void {
@@ -1154,105 +1165,32 @@ export class PdfRenderer implements RendererAdapter {
     };
     const onLeave = () => this.setHover(null);
 
-    // Trackpad pinch: Chromium-style ctrl+wheel and WebKit gesture events. Applied at most every
-    // PINCH_APPLY_MS around the pointer; intermediate steps accumulate unrounded (applyZoom rounds).
-    type Anchor = { clientX: number; clientY: number };
-    let pinch: { percent: number; at?: Anchor } | null = null;
-    let pinchTimer: ReturnType<typeof setTimeout> | undefined;
-    // The unrounded percentage the last application asked for: while the zoom is still that (rounded),
-    // the next step continues from it, so slow pinches don't lose their fraction at every application.
-    let pinchLast: number | null = null;
-    const applyPinch = () => {
-      pinchTimer = undefined;
-      const p = pinch;
-      pinch = null;
-      if (!p) return;
-      pinchLast = p.percent;
-      this.applyZoom(p.percent, p.at);
-    };
-    const pinchBase = () => {
-      if (pinch) return pinch.percent;
-      const now = percentOf(this.scale);
-      return pinchLast !== null && typeof this.zoom === 'number' && clampZoom(pinchLast) === now ? pinchLast : now;
-    };
-    this.cancelPinch = () => {
-      if (pinchTimer !== undefined) clearTimeout(pinchTimer);
-      pinchTimer = undefined;
-      pinch = null;
-      pinchLast = null;
-    };
-    const queuePinch = (percent: number, at?: Anchor) => {
-      pinch = { percent, at };
-      if (pinchTimer === undefined) pinchTimer = setTimeout(applyPinch, PINCH_APPLY_MS);
-    };
-    // WebKit may report one pinch as both gesture* and ctrl+wheel events: while a gesture is active
-    // the wheel events are swallowed, so the zoom isn't applied twice (jitter).
-    // A gestureend can go missing (focus lost mid-pinch): the flag also clears GESTURE_STALE_MS after
-    // the last gesture event, and on the next pointerdown, so ctrl+wheel zoom can't stay disabled.
-    let gestureActive = false;
-    let gestureTimer: ReturnType<typeof setTimeout> | undefined;
-    const endGesture = () => {
-      gestureActive = false;
-      if (gestureTimer !== undefined) clearTimeout(gestureTimer);
-      gestureTimer = undefined;
-    };
-    const touchGesture = () => {
-      gestureActive = true;
-      if (gestureTimer !== undefined) clearTimeout(gestureTimer);
-      gestureTimer = setTimeout(endGesture, GESTURE_STALE_MS);
-    };
-    const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      if (gestureActive) return;
-      const delta = wheelDeltaPx(e.deltaY, e.deltaMode, this.scroller.clientHeight);
-      queuePinch(pinchZoom(pinchBase(), delta), { clientX: e.clientX, clientY: e.clientY });
-    };
-    let gestureBase = 100;
-    const onGestureStart = (e: Event) => {
-      e.preventDefault();
-      touchGesture();
-      gestureBase = percentOf(this.scale);
-    };
-    const onGestureEnd = (e: Event) => {
-      e.preventDefault();
-      endGesture();
-    };
-    const onGestureChange = (e: Event) => {
-      e.preventDefault();
-      touchGesture();
-      const g = e as Event & { scale?: number; clientX?: number; clientY?: number };
-      const at = g.clientX !== undefined && g.clientY !== undefined ? { clientX: g.clientX, clientY: g.clientY } : undefined;
-      const scale = g.scale !== undefined && Number.isFinite(g.scale) && g.scale > 0 ? g.scale : 1;
-      queuePinch(clamp(gestureBase * scale, ZOOM_MIN, ZOOM_MAX), at);
-    };
+    // Pinch (trackpad, touch, ctrl+wheel) and animated zoom steps: a scaled preview, then one re-layout.
+    this.pinch = bindPinch({
+      scroller: this.scroller,
+      percent: () => this.scale * 100,
+      readingAnchor: () => {
+        const r = this.scroller.getBoundingClientRect();
+        return { clientX: r.left + this.scroller.clientWidth / 2, clientY: r.top + this.scroller.clientHeight / 3 };
+      },
+      commit: (percent, anchor) => this.applyZoom(percent, anchor),
+    });
 
     this.scroller.addEventListener('scroll', onScroll);
     this.scroller.addEventListener('mouseup', onMouseUp);
     const stopTouchSelection = watchTouchSelection(this.scroller, () => this.emitSelection());
     this.scroller.addEventListener('click', onClick);
-    this.scroller.addEventListener('wheel', onWheel, { passive: false });
-    this.scroller.addEventListener('gesturestart', onGestureStart);
-    this.scroller.addEventListener('gesturechange', onGestureChange);
-    this.scroller.addEventListener('gestureend', onGestureEnd);
-    this.scroller.addEventListener('pointerdown', endGesture);
     this.scroller.addEventListener('mousemove', onHover);
     this.scroller.addEventListener('mouseleave', onLeave);
     this.cleanup.push(() => {
       if (timer !== undefined) clearTimeout(timer);
-      if (pinchTimer !== undefined) clearTimeout(pinchTimer);
-      if (gestureTimer !== undefined) clearTimeout(gestureTimer);
       this.scroller.removeEventListener('scroll', onScroll);
       this.scroller.removeEventListener('mouseup', onMouseUp);
       stopTouchSelection();
       this.scroller.removeEventListener('click', onClick);
-      this.scroller.removeEventListener('wheel', onWheel);
-      this.scroller.removeEventListener('gesturestart', onGestureStart);
-      this.scroller.removeEventListener('gesturechange', onGestureChange);
-      this.scroller.removeEventListener('gestureend', onGestureEnd);
-      this.scroller.removeEventListener('pointerdown', endGesture);
       this.scroller.removeEventListener('mousemove', onHover);
       this.scroller.removeEventListener('mouseleave', onLeave);
+      this.pinch.dispose();
     });
   }
 
