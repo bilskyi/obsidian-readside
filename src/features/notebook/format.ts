@@ -87,3 +87,31 @@ export function linkTargets(body: string): string[] {
   }
   return out;
 }
+
+/**
+ * A highlight as Markdown for dropping into a thought: a blockquote, with a link back to its place when
+ * there is one (`> the quote — [§ 5](obsidian://readside?…)`). On lines of its own wherever it lands.
+ */
+export function quoteForDrop(quote: string, place: { label: string; link: string } | null): string {
+  const lines = quote
+    .trim()
+    .split('\n')
+    .map((l) => `> ${l}`);
+  if (place) lines[lines.length - 1] += ` — [${place.label}](${place.link})`;
+  return `\n${lines.join('\n')}\n\n`;
+}
+
+/**
+ * Drag handlers that carry a highlight as quoteForDrop's Markdown: a thought editor (CodeMirror) inserts
+ * it where it is dropped, and so does an Obsidian note.
+ */
+export function quoteDrag(quote: string, place: { label: string; link: string } | null) {
+  return {
+    draggable: true,
+    onDragStart: (e: { dataTransfer: DataTransfer | null }) => {
+      if (!e.dataTransfer) return;
+      e.dataTransfer.setData('text/plain', quoteForDrop(quote, place));
+      e.dataTransfer.effectAllowed = 'copy';
+    },
+  };
+}

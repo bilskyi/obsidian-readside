@@ -23,6 +23,7 @@ import { NEW_THOUGHT_PLACEHOLDER, ThoughtSessionContext } from './thoughtSession
 import { thoughtMenuItems } from './thoughtMenu';
 import { WritingSheetContext } from './sheetContext';
 import { ExpandIcon } from './ExpandIcon';
+import { quoteDrag } from './format';
 import { ThoughtPreview } from './ThoughtPreview';
 import { useInlineRename } from './useInlineRename';
 import './notebook.css';
@@ -197,14 +198,18 @@ function AnnotationEntry({ entry, current, actions }: { entry: AnnotationEntryDa
     ...(link ? [{ label: 'Copy Link', onSelect: () => actions.onCopyLink(link) }] : []),
     { label: a.note ? 'Delete Note' : 'Delete Highlight', onSelect: () => actions.onDeleteAnnotation(a), danger: true },
   ];
+  // Dragged into a thought (or a note), it lands as a quote with a link back here.
+  const drag = quoteDrag(quote, location && link ? { label: location.label, link } : null);
   return (
     <li className={cx('nb-entry nb-annotation', `nb-color-${a.color}`, current && 'is-current')}>
       {location ? (
-        <button type="button" className="nb-quote" title={`Go to ${location.label}`} onClick={() => actions.onNavigate(location)}>
+        <button type="button" className="nb-quote" title={`Go to ${location.label}, or drag into a thought`} onClick={() => actions.onNavigate(location)} {...drag}>
           {quote}
         </button>
       ) : (
-        <div className="nb-quote">{quote}</div>
+        <div className="nb-quote" {...drag}>
+          {quote}
+        </div>
       )}
       {a.note && <p className="nb-note">{a.note}</p>}
       <EntryMenu label={location ? `Actions for ${kind} on ${location.label}` : `Actions for unanchored ${kind}`} items={items} />
@@ -298,7 +303,11 @@ function ThoughtEntry({
           items={items}
         />
       </div>
-      {anchor && showAnchorQuote && <p className={`nb-context nb-color-${anchor.color}`}>{anchor.quote}</p>}
+      {anchor && showAnchorQuote && (
+        <p className={`nb-context nb-color-${anchor.color}`} {...quoteDrag(anchor.quote, location && link ? { label: location.label, link } : null)}>
+          {anchor.quote}
+        </p>
+      )}
       {owner.editable ? (
         <div className="thought-editor-slot" onFocus={owner.onFocus} onBlur={owner.onBlur}>
           <ThoughtEditor

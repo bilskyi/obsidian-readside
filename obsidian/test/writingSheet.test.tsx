@@ -8,7 +8,10 @@ vi.mock('../../src/renderers/pdf/PdfRenderer', async () => ({ PdfRenderer: (awai
 import { __setPdfJs, type App } from 'obsidian';
 import * as bodySaves from '../../src/features/notebook/bodySaves';
 import { createEditorOwners } from '../../src/features/notebook/editorOwners';
-import { insertLink, insertQuote, linkTargets, toggleWrap, wordCount } from '../../src/features/notebook/format';
+import { insertLink, insertQuote, linkTargets, quoteDrag, quoteForDrop, toggleWrap, wordCount } from '../../src/features/notebook/format';
+import { formatBar } from '../../src/features/notebook/formatBar';
+import { render } from '@testing-library/react';
+import { SAVED_SHOWN_MS, ThoughtEditor } from '../../src/features/notebook/ThoughtEditor';
 import { backend, setBackend } from '../../src/lib/backend';
 import MarginPlugin from '../src/main';
 import { MarginView, VIEW_TYPE } from '../src/view/MarginView';
@@ -66,6 +69,65 @@ describe('thought formatting', () => {
     expect(wordCount('A **bold** move, see [[Walden|the book]] — now.')).toBe(7);
     expect(wordCount('   ')).toBe(0);
     expect(linkTargets('[[Aestheticism]] and [[Paradox#Wilde]], again [[Aestheticism|it]]')).toEqual(['Aestheticism', 'Paradox']);
+  });
+});
+
+describe('dragging a highlight into a thought', () => {
+  it('carries it as a blockquote with a link back to its place, on lines of its own', () => {
+    expect(quoteForDrop('Simplify, simplify.', { label: 'p. 3', link: 'obsidian://readside?x=1' })).toBe(
+      '\n> Simplify, simplify. — [p. 3](obsidian://readside?x=1)\n\n',
+    );
+    expect(quoteForDrop('one\ntwo', null)).toBe('\n> one\n> two\n\n');
+    const setData = vi.fn();
+    const drag = quoteDrag('Simplify.', null);
+    const dt = { setData, effectAllowed: 'all' } as unknown as DataTransfer;
+    drag.onDragStart({ dataTransfer: dt });
+    expect(drag.draggable).toBe(true);
+    expect(setData).toHaveBeenCalledWith('text/plain', '\n> Simplify.\n\n');
+    expect(dt.effectAllowed).toBe('copy');
+  });
+});
+
+describe('the format bar over selected text', () => {
+  it('shows Bold, Italic and Link while text is selected, and they act on it', () => {
+    const parent = document.body.appendChild(document.createElement('div'));
+    const v = new EditorView({ parent, state: EditorState.create({ doc: 'a big idea', extensions: [formatBar()] }) });
+    expect(parent.querySelector('.cm-format-bar')).toBeNull();
+    v.dispatch({ selection: { anchor: 2, head: 5 } });
+    const bar = parent.querySelector('.cm-format-bar');
+    expect([...bar!.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Bold (⌘B)', 'Italic (⌘I)', 'Link a note']);
+    bar!.querySelector('button')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    expect(v.state.doc.toString()).toBe('a **big** idea');
+    v.dispatch({ selection: { anchor: 0 } });
+    expect(parent.querySelector('.cm-format-bar')).toBeNull();
+    v.destroy();
+  });
+});
+
+describe('a thought editor’s save status', () => {
+  it('marks the editor saved after a save, and unsaved while one has failed', async () => {
+    vi.useFakeTimers();
+    try {
+      let ok = false;
+      const { container, unmount } = render(
+        <ThoughtEditor initialBody="" label="t" onSave={() => (ok ? Promise.resolve() : Promise.reject(new Error('disk')))} />,
+      );
+      const host = container.querySelector<HTMLElement>('.thought-editor')!;
+      const view = EditorView.findFromDOM(host)!;
+      view.dispatch({ changes: { from: 0, insert: 'x' } });
+      await vi.advanceTimersByTimeAsync(600);
+      expect(host.hasAttribute('data-unsaved')).toBe(true);
+      ok = true;
+      view.dispatch({ changes: { from: 1, insert: 'y' } });
+      await vi.advanceTimersByTimeAsync(600);
+      expect(host.hasAttribute('data-unsaved')).toBe(false);
+      expect(host.hasAttribute('data-saved')).toBe(true);
+      await vi.advanceTimersByTimeAsync(SAVED_SHOWN_MS);
+      expect(host.hasAttribute('data-saved')).toBe(false);
+      unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

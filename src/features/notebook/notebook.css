@@ -451,3 +451,53 @@ div.cm-tooltip.cm-link-suggest {
 @media (forced-colors: active) {
   .nb-thought.is-pulse::after { box-shadow: none; outline: 2px solid Highlight; opacity: 1; animation: none; }
 }
+
+/* ---------- Save status (ThoughtEditor sets data-saved / data-unsaved) ---------- */
+.thought-editor { position: relative; }
+.thought-editor[data-saved]:focus-within::after,
+.thought-editor[data-unsaved]::after {
+  position: absolute;
+  right: 6px;
+  bottom: -16px;
+  font-size: var(--fs-meta);
+  line-height: 14px;
+  color: var(--text-2);
+  pointer-events: none;
+  content: 'Saved';
+  animation: thought-saved 1.5s ease-out forwards;
+}
+.thought-editor[data-unsaved]::after { content: 'Not saved yet'; color: var(--warning); animation: none; }
+@keyframes thought-saved {
+  0%, 60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thought-editor[data-saved]:focus-within::after { animation: none; }
+}
+
+/* ---------- Format bar over selected text (formatBar.ts) ---------- */
+.cm-tooltip.cm-format-bar {
+  border: 0;
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: var(--toast-shadow);
+  margin-bottom: 4px;
+}
+.cm-format-bar button {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-body);
+  cursor: pointer;
+}
+.cm-format-bar button:hover { background: var(--hover); }
+.cm-format-bar button.is-bold { font-weight: 700; }
+.cm-format-bar button.is-italic { font-style: italic; }

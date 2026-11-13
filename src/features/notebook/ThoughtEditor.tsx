@@ -8,10 +8,13 @@ import { useContext, useEffect, useLayoutEffect, useRef } from 'react';
 import { debounce } from '../../lib/debounce';
 import { register } from './editorRegistry';
 import { toggleWrap } from './format';
+import { formatBar } from './formatBar';
 import { LinkSuggestContext, linkSuggestions } from './linkSuggest';
 import './notebook.css';
 
 export const SAVE_DELAY_MS = 500;
+/** How long "Saved" shows after a save. */
+export const SAVED_SHOWN_MS = 1500;
 /** The editor's placeholder when nothing else is asked for. */
 export const DEFAULT_PLACEHOLDER = 'Write a thought…';
 
@@ -82,6 +85,8 @@ interface Props {
   onExpand?: () => void;
   /** The CodeMirror view once mounted, null when it goes (for the writing sheet's format buttons). */
   onView?: (view: EditorView | null) => void;
+  /** The Bold / Italic / Link bar over selected text (read at mount); off where a toolbar is always there. */
+  formatOnSelect?: boolean;
 }
 
 /** Read-only: no edits from typing or pasting, said to assistive tech too. */
@@ -100,6 +105,7 @@ export function ThoughtEditor({
   readOnly = false,
   onExpand,
   onView,
+  formatOnSelect = true,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -110,7 +116,7 @@ export function ThoughtEditor({
     keysRef.current = { onEscape, onFinish, onContent, onExpand, onView };
   });
   // The editor owns its text after mount; a later initialBody is adopted only while clean.
-  const seed = useRef({ initialBody, label, placeholderText });
+  const seed = useRef({ initialBody, label, placeholderText, formatOnSelect });
   // Set by the main effect: adopt a newer external body when the editor has no local changes.
   const labelCompartment = useRef(new Compartment());
   const readOnlyCompartment = useRef(new Compartment());
@@ -127,7 +133,22 @@ export function ThoughtEditor({
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    const { initialBody: doc, label: ariaLabel, placeholderText: hint } = seed.current;
+    const { initialBody: doc, label: ariaLabel, placeholderText: hint, formatOnSelect: bar } = seed.current;
+    // A quiet "Saved" after each save while the editor has focus; "Not saved" while one has failed (CSS).
+    let savedTimer: ReturnType<typeof setTimeout> | undefined;
+    const showSaved = (ok: boolean) => {
+      clearTimeout(savedTimer);
+      if (!ok) {
+        delete host.dataset.saved;
+        host.dataset.unsaved = '';
+        return;
+      }
+      delete host.dataset.unsaved;
+      host.dataset.saved = '';
+      savedTimer = setTimeout(() => delete host.dataset.saved, SAVED_SHOWN_MS);
+    };
+    // The format bar's tooltips go where the `[[` list goes, so the scoped CSS reaches them.
+    const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
     let hadContent = doc.trim() !== '';
     // `saved`: the last body sent (or seeded/adopted); `persisted`: the last one the backend confirmed.
     let saved = doc;
@@ -157,8 +178,10 @@ export function ThoughtEditor({
             persistedSeq = seq;
             persisted = body;
           }
+          if (seq === sendSeq) showSaved(true);
         },
         () => {
+          if (seq === sendSeq) showSaved(false);
           // Failed: unless a newer body was sent since, fall back to the last confirmed body so the
           // editor is dirty and the next keystroke, blur or flush sends the text again.
           if (seq === sendSeq) saved = persisted;
@@ -230,6 +253,7 @@ export function ThoughtEditor({
                 host.closest<HTMLElement>('.margin-card') ?? host.closest<HTMLElement>('.margin-app') ?? undefined,
               )
             : [],
+          bar && !coarse ? formatBar() : [],
           labelCompartment.current.of(EditorView.contentAttributes.of({ 'aria-label': ariaLabel })),
           readOnlyCompartment.current.of(readOnlyExtension(readOnlyRef.current)),
           EditorView.updateListener.of((u) => {
@@ -272,6 +296,7 @@ export function ThoughtEditor({
       });
     };
     return () => {
+      clearTimeout(savedTimer);
       unregister();
       void flushNow();
       keysRef.current.onView?.(null);

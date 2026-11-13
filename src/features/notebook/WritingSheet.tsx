@@ -166,6 +166,7 @@ export function WritingSheet({ thought, thoughts, annotations, onSave, onSwitch,
                 onContent={() => session.wrote(id)}
                 readOnly={session.isRemoving(id)}
                 onView={setView}
+                formatOnSelect={false}
               />
             )}
           </div>

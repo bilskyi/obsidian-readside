@@ -132,6 +132,8 @@
   box-shadow: none;
 }
 .sheet-editor .cm-editor { flex: 1; font-size: 16px; }
+/* The footer says Saved here. */
+.sheet-editor .thought-editor::after { display: none; }
 .sheet-editor .cm-scroller { line-height: 1.7; }
 .sheet-editor .cm-content { padding: 4px 0 48px; }
 
