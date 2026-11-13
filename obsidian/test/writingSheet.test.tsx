@@ -176,6 +176,13 @@ async function openWalden(): Promise<MarginView> {
   return view;
 }
 
+/** Opens the notebook before anything else, so a thought made next shows there (no race with its own opening). */
+async function openNotebook(): Promise<HTMLElement> {
+  const button = screen.getByRole('button', { name: 'Notebook' });
+  if (button.getAttribute('aria-pressed') !== 'true') fireEvent.click(button);
+  return screen.findByRole('complementary', { name: 'Notebook' });
+}
+
 afterEach(async () => {
   if (plugin) {
     plugin.unload();
@@ -194,10 +201,9 @@ describe('the writing sheet in the reader', () => {
   it('opens a notebook thought in the sheet, edits it there while the notebook shows a preview, and closes', async () => {
     const view = await openWalden();
     const bookId = (view as unknown as { book: { id: string } }).book.id;
+    const notebook = await openNotebook();
     fireEvent.click(screen.getByRole('button', { name: 'New Thought' }));
     await waitFor(async () => expect(await backend().listThoughts(bookId)).toHaveLength(1));
-    if (!screen.queryByRole('complementary', { name: 'Notebook' })) fireEvent.click(screen.getByRole('button', { name: 'Notebook' }));
-    const notebook = await screen.findByRole('complementary', { name: 'Notebook' });
 
     fireEvent.click(await within(notebook).findByRole('button', { name: /in the writing sheet/ }));
     const sheet = await screen.findByRole('dialog');
@@ -221,9 +227,8 @@ describe('the writing sheet in the reader', () => {
     const view = await openWalden();
     const bookId = (view as unknown as { book: { id: string } }).book.id;
     const confirm = vi.spyOn(backend(), 'confirm');
+    const notebook = await openNotebook();
     fireEvent.click(screen.getByRole('button', { name: 'New Thought' }));
-    if (!screen.queryByRole('complementary', { name: 'Notebook' })) fireEvent.click(screen.getByRole('button', { name: 'Notebook' }));
-    const notebook = await screen.findByRole('complementary', { name: 'Notebook' });
     fireEvent.click(await within(notebook).findByRole('button', { name: /in the writing sheet/ }));
     fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Link a note' }));
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
@@ -243,9 +248,8 @@ describe('the writing sheet in the reader', () => {
 
   it('Escape closes the sheet, and so does a click outside it', async () => {
     await openWalden();
+    const notebook = await openNotebook();
     fireEvent.click(screen.getByRole('button', { name: 'New Thought' }));
-    if (!screen.queryByRole('complementary', { name: 'Notebook' })) fireEvent.click(screen.getByRole('button', { name: 'Notebook' }));
-    const notebook = await screen.findByRole('complementary', { name: 'Notebook' });
     const open = async () => {
       fireEvent.click(await within(notebook).findByRole('button', { name: /in the writing sheet/ }));
       return screen.findByRole('dialog');
