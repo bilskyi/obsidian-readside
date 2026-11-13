@@ -46,7 +46,6 @@ import { useFreshIds } from './useFreshIds';
 import { useUndoToast } from './useUndoToast';
 import { isPresent, toPaintable, useAnnotations } from './useAnnotations';
 import { ReaderToolbar, type BackButton } from './toolbar/ReaderToolbar';
-import { useBarFade } from './toolbar/useBarFade';
 import { retireHint } from '../marginalia/MarginHint';
 import {
   OPENING_DELAY_MS,
@@ -316,8 +315,6 @@ export function ReaderView({
   // while the remembered wish stays for the next book.
   const focusAvailable = paged && openStatus !== 'failed';
   const focus = focusWanted && focusAvailable;
-  /** The toolbar fades while reading (scrolling down) and comes back on a scroll up, a tap, hover or focus. */
-  const barFaded = useBarFade(readerEl, pageCount > 0 && !focus);
   // Focus mode hides the panels without touching their stored state, so leaving it restores them exactly.
   const showContents = contentsOpen && hasContents && !focus;
   const showNotebook = notebookOpen && !focus;
@@ -1359,7 +1356,6 @@ export function ReaderView({
     <div className="reader" ref={setReaderEl} data-focus={focus ? '' : undefined}>
       {!focus && (
         <ReaderToolbar
-          faded={barFaded}
           title={displayTitle}
           showTitle={showTitle}
           page={currentPage}
