@@ -21,6 +21,8 @@ import { ThoughtEditor } from './ThoughtEditor';
 import { ThoughtLabelView } from './ThoughtLabel';
 import { NEW_THOUGHT_PLACEHOLDER, ThoughtSessionContext } from './thoughtSession';
 import { thoughtMenuItems } from './thoughtMenu';
+import { WritingSheetContext } from './sheetContext';
+import { ExpandIcon } from './ExpandIcon';
 import { ThoughtPreview } from './ThoughtPreview';
 import { useInlineRename } from './useInlineRename';
 import './notebook.css';
@@ -243,7 +245,9 @@ function ThoughtEntry({
   const entryHead = () => barRef.current?.querySelector<HTMLElement>('button.nb-thought-head, .nb-menu-btn');
   // After Enter or Escape, focus goes back to the thought's header.
   const { renaming, startRename, finishRename } = useInlineRename(thought, actions.onRenameThought, entryHead);
-  const items = thoughtMenuItems(thought, anchor, link, actions, startRename);
+  const sheet = useContext(WritingSheetContext);
+  const expand = sheet ? () => sheet.open(thought.id) : undefined;
+  const items = thoughtMenuItems(thought, anchor, link, actions, startRename, expand);
   const editorLabel = location ? `Thought on ${location.label}` : 'General thought';
   // One editor per thought: while its margin note holds the editor, the notebook shows a preview.
   const owner = useEditorOwner(thought.id, 'notebook');
@@ -278,6 +282,17 @@ function ThoughtEntry({
             <ThoughtLabelView label={label} />
           </span>
         )}
+        {expand && (
+          <button
+            type="button"
+            className="thought-expand"
+            aria-label={`Open ${labelText(label) || 'thought'} in the writing sheet`}
+            title="Writing sheet (⌘E)"
+            onClick={expand}
+          >
+            <ExpandIcon />
+          </button>
+        )}
         <EntryMenu
           label={location ? `Actions for thought on ${location.label}` : 'Actions for general thought'}
           items={items}
@@ -297,8 +312,11 @@ function ThoughtEntry({
             onFinish={() => session.finish()}
             onContent={() => session.wrote(thought.id)}
             readOnly={session.isRemoving(thought.id)}
+            onExpand={expand}
           />
         </div>
+      ) : owner.inSheet && expand ? (
+        <ThoughtPreview body={thought.body} action="Open the writing sheet" onActivate={expand} />
       ) : (
         <ThoughtPreview
           body={thought.body}

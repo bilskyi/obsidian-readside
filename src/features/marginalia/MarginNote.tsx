@@ -16,9 +16,11 @@ import { useInlineRename } from '../notebook/useInlineRename';
 import { linkForEntry } from '../notebook/notebookModel';
 import { ThoughtEditor } from '../notebook/ThoughtEditor';
 import { NEW_THOUGHT_PLACEHOLDER, ThoughtSessionContext } from '../notebook/thoughtSession';
+import { WritingSheetContext } from '../notebook/sheetContext';
 import { ThoughtLabelView } from '../notebook/ThoughtLabel';
 import { thoughtMenuItems, type ThoughtMenuActions } from '../notebook/thoughtMenu';
 import { ThoughtPreview } from '../notebook/ThoughtPreview';
+import { ExpandIcon } from '../notebook/ExpandIcon';
 import type { MarginEntry } from './marginModel';
 import './marginalia.css';
 
@@ -80,6 +82,8 @@ export function MarginNote({
   const editorLabel = `Margin thought on ${location.label}`;
   const owner = useEditorOwner(id, 'margin');
   const session = useContext(ThoughtSessionContext);
+  const sheet = useContext(WritingSheetContext);
+  const expand = sheet ? () => sheet.open(id) : undefined;
   const [focused, setFocused] = useState(false);
   /** Focus the editor as soon as it mounts here (asked for while a preview was showing). */
   const [wantFocus, setWantFocus] = useState(false);
@@ -188,7 +192,7 @@ export function MarginNote({
   };
 
   const link = linkForEntry({ kind: 'thought', thought, location, anchor });
-  const items = thoughtMenuItems(thought, anchor, link, actions, startRename);
+  const items = thoughtMenuItems(thought, anchor, link, actions, startRename, expand);
 
   return (
     <article
@@ -222,6 +226,11 @@ export function MarginNote({
             <ThoughtLabelView label={label} />
           </button>
         )}
+        {expand && (
+          <button type="button" className="thought-expand" aria-label={`Open ${name} in the writing sheet`} title="Writing sheet (⌘E)" onClick={expand}>
+            <ExpandIcon />
+          </button>
+        )}
         <EntryMenu label={`Actions for thought on ${location.label}`} items={items} />
       </div>
       {owner.editable ? (
@@ -249,8 +258,11 @@ export function MarginNote({
             }}
             onContent={() => session.wrote(id)}
             readOnly={session.isRemoving(id)}
+            onExpand={expand}
           />
         </div>
+      ) : owner.inSheet && expand ? (
+        <ThoughtPreview buttonRef={previewRef} body={thought.body} action="Open the writing sheet" onActivate={expand} />
       ) : (
         <ThoughtPreview buttonRef={previewRef} body={thought.body} action="Write here" onActivate={() => setWantFocus(true)} />
       )}

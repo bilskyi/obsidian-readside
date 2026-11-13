@@ -17,6 +17,8 @@ import { createEditorOwners, EditorOwnersContext } from '../notebook/editorOwner
 import { LinkSuggestContext, type LinkSuggestSource } from '../notebook/linkSuggest';
 import { NotebookPanel } from '../notebook/NotebookPanel';
 import { ThoughtSessionContext } from '../notebook/thoughtSession';
+import { WritingSheetContext, type WritingSheetOpener } from '../notebook/sheetContext';
+import { WritingSheet } from '../notebook/WritingSheet';
 import { unlinkPatch } from '../notebook/notebookModel';
 import { ResizeHandle } from '../notebook/ResizeHandle';
 import { MIN_WIDTH as NOTEBOOK_MIN, useNotebookLayout } from '../notebook/useNotebookLayout';
@@ -381,6 +383,10 @@ export function ReaderView({
   });
   /** One editor per thought across the notebook and the margin (editorOwners.ts). */
   const [owners] = useState(createEditorOwners);
+  /** The thought open in the writing sheet; it owns that thought's editor while open. */
+  const [sheetId, setSheetId] = useState<string | null>(null);
+  const sheetOpener = useMemo<WritingSheetOpener>(() => ({ open: setSheetId }), []);
+  useLayoutEffect(() => owners.setSheet(sheetId), [owners, sheetId]);
   /** A thought the margin should focus once its note is on screen. */
   const [marginFocusId, setMarginFocusId] = useState<string | null>(null);
   const onMarginFocusHandled = useCallback(() => setMarginFocusId(null), []);
@@ -1267,6 +1273,11 @@ export function ReaderView({
         busyRef.current = false;
       });
   };
+  /** The sheet's thought; gone (deleted, here or in another window) closes the sheet. */
+  const sheetThought = sheetId ? (thoughts.find((t) => t.id === sheetId) ?? null) : null;
+  useEffect(() => {
+    if (sheetId && !sheetThought) setSheetId(null);
+  }, [sheetId, sheetThought]);
   /** A thought chosen in the notebook: scroll to its place and, with the margin on, focus its margin note. */
   const openFromNotebook = (t: Thought, location: Location) => {
     navigate(location);
@@ -1356,6 +1367,7 @@ export function ReaderView({
         />
       )}
       <EditorOwnersContext.Provider value={owners}>
+        <WritingSheetContext.Provider value={paged ? sheetOpener : null}>
         <ThoughtSessionContext.Provider value={thoughtSession}>
           <LinkSuggestContext.Provider value={linkSuggest ?? null}>
             <div className="reader-body" ref={bodyRef}>
@@ -1479,9 +1491,25 @@ export function ReaderView({
                   />
                 </>
               )}
+              {sheetThought && (
+                <WritingSheet
+                  key={sheetThought.id}
+                  thought={sheetThought}
+                  thoughts={thoughts}
+                  annotations={items}
+                  onSave={saveThought}
+                  onSwitch={setSheetId}
+                  onShowInBook={(location) => {
+                    setSheetId(null);
+                    openFromNotebook(sheetThought, location);
+                  }}
+                  onClose={() => setSheetId(null)}
+                />
+              )}
             </div>
           </LinkSuggestContext.Provider>
         </ThoughtSessionContext.Provider>
+        </WritingSheetContext.Provider>
       </EditorOwnersContext.Provider>
       <div className="toasts">
         {message && (

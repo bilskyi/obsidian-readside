@@ -7,6 +7,7 @@ import { tags as t } from '@lezer/highlight';
 import { useContext, useEffect, useLayoutEffect, useRef } from 'react';
 import { debounce } from '../../lib/debounce';
 import { register } from './editorRegistry';
+import { toggleWrap } from './format';
 import { LinkSuggestContext, linkSuggestions } from './linkSuggest';
 import './notebook.css';
 
@@ -77,6 +78,10 @@ interface Props {
   onContent?: () => void;
   /** Takes no typing (an empty new thought whose delete is on its way); it still takes focus. */
   readOnly?: boolean;
+  /** ⌘E (Ctrl+E elsewhere): open the thought in the writing sheet. */
+  onExpand?: () => void;
+  /** The CodeMirror view once mounted, null when it goes (for the writing sheet's format buttons). */
+  onView?: (view: EditorView | null) => void;
 }
 
 /** Read-only: no edits from typing or pasting, said to assistive tech too. */
@@ -93,14 +98,16 @@ export function ThoughtEditor({
   onFinish,
   onContent,
   readOnly = false,
+  onExpand,
+  onView,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onSaveRef = useRef(onSave);
-  const keysRef = useRef({ onEscape, onFinish, onContent });
+  const keysRef = useRef({ onEscape, onFinish, onContent, onExpand, onView });
   useLayoutEffect(() => {
     onSaveRef.current = onSave;
-    keysRef.current = { onEscape, onFinish, onContent };
+    keysRef.current = { onEscape, onFinish, onContent, onExpand, onView };
   });
   // The editor owns its text after mount; a later initialBody is adopted only while clean.
   const seed = useRef({ initialBody, label, placeholderText });
@@ -193,6 +200,18 @@ export function ThoughtEditor({
                   return true;
                 },
               },
+              {
+                key: 'Mod-e',
+                run: () => {
+                  const fn = keysRef.current.onExpand;
+                  if (!fn) return false;
+                  fn();
+                  return true;
+                },
+              },
+              // Obsidian's own bold and italic keys.
+              { key: 'Mod-b', run: (v) => toggleWrap(v, '**') },
+              { key: 'Mod-i', run: (v) => toggleWrap(v, '*') },
             ]),
           ),
           history(),
@@ -232,6 +251,7 @@ export function ThoughtEditor({
     });
     viewRef.current = view;
     liveView = view;
+    keysRef.current.onView?.(view);
     const unregister = register(flushNow);
     adoptRef.current = (body) => {
       const cur = view.state.doc.toString();
@@ -254,6 +274,7 @@ export function ThoughtEditor({
     return () => {
       unregister();
       void flushNow();
+      keysRef.current.onView?.(null);
       liveView = null;
       view.destroy();
       viewRef.current = null;
