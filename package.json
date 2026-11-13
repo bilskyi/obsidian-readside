@@ -1,6 +1,6 @@
 {
   "name": "obsidian-readside",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Read PDFs and EPUBs with highlights, margin notes and a notebook kept as a note in your vault. Translate text offline with downloadable language models.",
   "author": "bilskyi",
   "license": "MIT",
