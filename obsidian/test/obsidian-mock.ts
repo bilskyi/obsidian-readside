@@ -373,7 +373,7 @@ function frontmatterOf(text: string): Record<string, unknown> | null {
 export class MetadataCache extends Events {
   resolvedLinks: Record<string, Record<string, number>> = {};
   unresolvedLinks: Record<string, Record<string, number>> = {};
-  private caches = new Map<string, { links?: MockLinkCache[]; embeds?: MockLinkCache[] }>();
+  private caches = new Map<string, { links?: MockLinkCache[]; embeds?: MockLinkCache[]; tags?: { tag: string }[] }>();
   constructor(private vault: Vault) {
     super();
   }
@@ -381,7 +381,7 @@ export class MetadataCache extends Events {
    * The links set with setCache, plus the note's frontmatter read from its current text (like Obsidian's
    * cache once it has caught up), so a note Margin writes carries its `margin-book` key here too.
    */
-  getFileCache(file: TFile): { links?: MockLinkCache[]; embeds?: MockLinkCache[]; frontmatter?: Record<string, unknown> } | null {
+  getFileCache(file: TFile): { links?: MockLinkCache[]; embeds?: MockLinkCache[]; tags?: { tag: string }[]; frontmatter?: Record<string, unknown> } | null {
     const cached = this.caches.get(file.path);
     const text = this.vault.adapter.files.get(file.path);
     const fm = typeof text === 'string' ? frontmatterOf(text) : null;
@@ -389,7 +389,7 @@ export class MetadataCache extends Events {
     return { ...cached, ...(fm ? { frontmatter: fm } : {}) };
   }
   /** Test helper: sets a note's cached links (and its resolvedLinks entry from the ones that resolve). */
-  setCache(path: string, cache: { links?: MockLinkCache[]; embeds?: MockLinkCache[] }): void {
+  setCache(path: string, cache: { links?: MockLinkCache[]; embeds?: MockLinkCache[]; tags?: { tag: string }[] }): void {
     this.caches.set(path, cache);
     const resolved: Record<string, number> = {};
     for (const l of [...(cache.links ?? []), ...(cache.embeds ?? [])]) {
@@ -1275,6 +1275,15 @@ export function __setPdfJs(lib: unknown): void {
 }
 
 /** A simple stand-in for Obsidian's fuzzy search: the query's characters in order, case-insensitive; tighter and earlier is better. */
+/** Obsidian's getAllTags: the body's tags (`cache.tags`) and the frontmatter's `tags`, each with its `#`. */
+export function getAllTags(cache: { tags?: { tag: string }[]; frontmatter?: Record<string, unknown> }): string[] | null {
+  const out = (cache.tags ?? []).map((t) => t.tag);
+  const fm = cache.frontmatter?.tags;
+  const list = Array.isArray(fm) ? fm : typeof fm === 'string' ? fm.split(/[,\s]+/) : [];
+  for (const t of list) if (typeof t === 'string' && t) out.push(t.startsWith('#') ? t : `#${t}`);
+  return out;
+}
+
 export function prepareFuzzySearch(query: string): (text: string) => { score: number; matches: [number, number][] } | null {
   const q = query.toLowerCase().replace(/\s+/g, '');
   return (text: string) => {

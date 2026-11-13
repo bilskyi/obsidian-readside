@@ -3,7 +3,7 @@ import { EditorView, keymap, showTooltip, tooltips, type Tooltip, type TooltipVi
 import { createContext } from 'react';
 
 /**
- * `[[` link suggestions in a thought editor. Dependency-free (no @codemirror/autocomplete): a StateField
+ * `[[` link and `#tag` suggestions in a thought editor. Dependency-free (no @codemirror/autocomplete): a StateField
  * holds the open list, a tooltip shows it, a top-precedence keymap drives it. The list comes from the
  * host (Obsidian: the vault's notes); without a host source the extension is never installed, so `[[`
  * does nothing on desktop.
@@ -29,8 +29,14 @@ export interface LinkSuggestion {
  */
 export type LinkSuggestSession = Record<string, unknown>;
 
-/** The host's source: notes matching `query` (the text typed after `[[`), best first. */
-export type LinkSuggestSource = (query: string, session?: LinkSuggestSession) => readonly LinkSuggestion[];
+/** What is being typed: a `[[` link or a `#` tag. */
+export type SuggestKind = 'link' | 'tag';
+
+/**
+ * The host's source: notes matching `query` (the text typed after `[[`), or for `kind` 'tag' the vault's
+ * tags matching the text after `#` (`insert` is the tag without its `#`), best first.
+ */
+export type LinkSuggestSource = (query: string, session?: LinkSuggestSession, kind?: SuggestKind) => readonly LinkSuggestion[];
 
 /** Given by the host (ReaderView's `linkSuggest`); null = no suggestions. */
 export const LinkSuggestContext = createContext<LinkSuggestSource | null>(null);
@@ -54,8 +60,23 @@ export function linkQueryAt(state: EditorState, pos: number): { from: number; qu
   return { from: line.from + open + 2, query };
 }
 
+/**
+ * The `#tag` the cursor at `pos` is typing: `from` is just after the `#`, `query` the tag so far. A `#` only
+ * starts a tag at the start of a line or after a space (not in a URL's `#anchor`); a Markdown heading's
+ * `# ` ends it at once.
+ */
+export function tagQueryAt(state: EditorState, pos: number): { from: number; query: string } | null {
+  const line = state.doc.lineAt(pos);
+  const m = /(?:^|\s)#([\p{L}\p{N}_/-]*)$/u.exec(state.sliceDoc(line.from, pos));
+  if (!m) return null;
+  return { from: pos - m[1].length, query: m[1] };
+}
+
+const TRIGGER: Record<SuggestKind, number> = { link: 2, tag: 1 };
+
 interface Open {
-  /** Just after the `[[`. */
+  kind: SuggestKind;
+  /** Just after the `[[` (or the `#`). */
   from: number;
   query: string;
   items: readonly LinkSuggestion[];
@@ -106,7 +127,9 @@ export function linkSuggestions(source: () => LinkSuggestSource | null, parent?:
         };
       }
       const sel = tr.state.selection.main;
-      const q = sel.empty ? linkQueryAt(tr.state, sel.head) : null;
+      const link = sel.empty ? linkQueryAt(tr.state, sel.head) : null;
+      const tag = sel.empty && !link ? tagQueryAt(tr.state, sel.head) : null;
+      const q = link ? { ...link, kind: 'link' as const } : tag ? { ...tag, kind: 'tag' as const } : null;
       if (!q) return CLOSED;
       const dismissed = value.dismissed === null ? null : tr.changes.mapPos(value.dismissed);
       if (dismissed === q.from) return { open: null, dismissed, session: null };
@@ -114,11 +137,15 @@ export function linkSuggestions(source: () => LinkSuggestSource | null, parent?:
       if (!value.open && !tr.docChanged && !refreshed) return CLOSED;
       const kept = value.session && tr.changes.mapPos(value.session.from) === q.from ? value.session.data : null;
       const session = { from: q.from, data: kept ?? {} };
-      if (value.open && value.open.query === q.query && tr.changes.mapPos(value.open.from) === q.from) {
+      if (value.open && value.open.kind === q.kind && value.open.query === q.query && tr.changes.mapPos(value.open.from) === q.from) {
         return { open: { ...value.open, from: q.from }, dismissed: null, session };
       }
-      const items = (source()?.(q.query, session.data) ?? []).slice(0, MAX_SUGGESTIONS);
-      return { open: items.length ? { from: q.from, query: q.query, items, selected: 0 } : null, dismissed: null, session };
+      const items = (source()?.(q.query, session.data, q.kind) ?? []).slice(0, MAX_SUGGESTIONS);
+      return {
+        open: items.length ? { kind: q.kind, from: q.from, query: q.query, items, selected: 0 } : null,
+        dismissed: null,
+        session,
+      };
     },
   });
 
@@ -127,12 +154,14 @@ export function linkSuggestions(source: () => LinkSuggestSource | null, parent?:
     const item = open?.items[index];
     if (!open || !item) return false;
     const head = view.state.selection.main.head;
+    const start = open.from - TRIGGER[open.kind];
     // A `]]` already right after the cursor (typed ahead, or auto-paired) is replaced, not doubled.
-    const end = view.state.sliceDoc(head, head + 2) === ']]' ? head + 2 : head;
-    const text = item.replace ?? `[[${item.insert}]]`;
+    const end = open.kind === 'link' && view.state.sliceDoc(head, head + 2) === ']]' ? head + 2 : head;
+    // A tag ends with a space, so the list closes and the next word starts.
+    const text = open.kind === 'tag' ? `#${item.insert} ` : (item.replace ?? `[[${item.insert}]]`);
     view.dispatch({
-      changes: { from: open.from - 2, to: end, insert: text },
-      selection: { anchor: open.from - 2 + text.length },
+      changes: { from: start, to: end, insert: text },
+      selection: { anchor: start + text.length },
       userEvent: 'input.complete',
       scrollIntoView: true,
     });
@@ -180,7 +209,7 @@ export function linkSuggestions(source: () => LinkSuggestSource | null, parent?:
   const tooltipFor = (open: Open): Tooltip => {
     if (shown?.from === open.from) return shown.tooltip;
     const tooltip: Tooltip = {
-      pos: open.from - 2,
+      pos: open.from - TRIGGER[open.kind],
       above: false,
       strictSide: false,
       create(view): TooltipView {
@@ -188,7 +217,7 @@ export function linkSuggestions(source: () => LinkSuggestSource | null, parent?:
         dom.className = 'cm-link-suggest';
         dom.id = listId;
         dom.setAttribute('role', 'listbox');
-        dom.setAttribute('aria-label', 'Link to a note');
+        dom.setAttribute('aria-label', open.kind === 'tag' ? 'Tags' : 'Link to a note');
         render(dom, view, view.state.field(field).open);
         return {
           dom,

@@ -1,4 +1,4 @@
-import { prepareFuzzySearch, type App, type TFile } from 'obsidian';
+import { getAllTags, prepareFuzzySearch, type App, type TFile } from 'obsidian';
 import { MAX_SUGGESTIONS, type LinkSuggestion, type LinkSuggestSession } from '../../src/features/notebook/linkSuggest';
 
 const folderOf = (file: TFile) => {
@@ -50,4 +50,35 @@ export function suggestNotes(app: App, query: string, limit = MAX_SUGGESTIONS, s
       ...(folder ? { detail: folder } : {}),
     };
   });
+}
+
+/**
+ * The vault's tags for a `#` typed in a thought: those containing the query (case-insensitive), those that
+ * start with it first, then the most used. Each shows how many notes carry it. The vault's tags are counted
+ * once per `#` (kept in `session`).
+ */
+export function suggestTags(app: App, query: string, limit = MAX_SUGGESTIONS, session?: LinkSuggestSession): LinkSuggestion[] {
+  let counts = session?.tags as Map<string, number> | undefined;
+  if (!counts) {
+    counts = new Map();
+    for (const file of app.vault.getMarkdownFiles()) {
+      const cache = app.metadataCache.getFileCache(file);
+      if (!cache) continue;
+      // A note counts once per tag, however often it uses it.
+      for (const tag of new Set(getAllTags(cache) ?? [])) {
+        const name = tag.replace(/^#/, '');
+        if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
+      }
+    }
+    if (session) session.tags = counts;
+  }
+  const q = query.toLowerCase();
+  return [...counts]
+    .filter(([name]) => name.toLowerCase().includes(q))
+    .sort(
+      ([a, na], [b, nb]) =>
+        Number(b.toLowerCase().startsWith(q)) - Number(a.toLowerCase().startsWith(q)) || nb - na || a.localeCompare(b),
+    )
+    .slice(0, limit)
+    .map(([name, n]) => ({ label: `#${name}`, insert: name, detail: n === 1 ? '1 note' : `${n} notes` }));
 }

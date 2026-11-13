@@ -32,7 +32,7 @@ import { epubCoverWebp } from './covers/epubCover';
 import { confirmModal } from './backend/confirmModal';
 import { registerViewCommands } from './commands';
 import { markdownLink, parseMarginParams } from './links';
-import { suggestNotes } from './linkSuggest';
+import { suggestNotes, suggestTags } from './linkSuggest';
 import { BacklinkIndex } from './backlinks';
 import { VaultBackend } from './backend/vaultBackend';
 import { PdfPicker, bookLinkAt, isBook, isPdf, recentFirst } from './open';
@@ -251,7 +251,8 @@ export default class MarginPlugin extends Plugin {
         throw new MarginError(`Readside couldn't copy the link: ${e instanceof Error ? e.message : String(e)}`);
       }
     },
-    linkSuggest: (query, session) => suggestNotes(this.app, query, undefined, session),
+    linkSuggest: (query, session, kind) =>
+      kind === 'tag' ? suggestTags(this.app, query, undefined, session) : suggestNotes(this.app, query, undefined, session),
     watchBacklinks: (file, onChange) => this.backlinks?.watch(file, onChange) ?? (() => {}),
     // Beside the reader, never in its place: one split leaf, reused while it is still in the workspace
     // (and not itself a reader by then); ⌘/Ctrl or a middle click: a new tab.
