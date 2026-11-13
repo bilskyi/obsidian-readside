@@ -20,6 +20,7 @@
 
 - 🖍️ **Highlight and underline** in five colours, add a note to any highlight, or write a thought in the margin.
 - 📓 **A notebook for every book**: a side panel of everything you marked, filterable by kind and colour.
+- ✍️ **A writing sheet for longer thoughts.** Press **⌘E** in a thought to write it at full size, with its highlight above, its links beside it, and Bold, Italic, Link and Quote buttons. Type `#` for your vault's tags, or drag a highlight from the notebook into a thought to quote it.
 - 🔗 **Your notes stay in your vault.** Each book's notebook is also written as a Markdown note, with every quote linking back to its exact place in the book.
 - ↩️ **Backlinks in the margin.** Notes that link into a book show up right where they point. Type `[[` in a thought to link any note.
 - 📚 **A shelf** of your books with covers, reading progress and your recent thoughts, plus search across every highlight.
@@ -84,6 +85,9 @@ On a phone or tablet, long-press to select text; the colours and actions appear 
 | --- | --- |
 | Toggle notebook | <kbd>⌘</kbd><kbd>\\</kbd> |
 | Add thought at reading line | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>M</kbd> |
+| Open a thought in the writing sheet | <kbd>⌘</kbd><kbd>E</kbd> (in the thought) |
+| Bold / italic in a thought | <kbd>⌘</kbd><kbd>B</kbd> / <kbd>⌘</kbd><kbd>I</kbd> |
+| Undo deleting a thought | <kbd>⌘</kbd><kbd>Z</kbd> |
 | Contents | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>C</kbd> |
 | Find in book | <kbd>⌘</kbd><kbd>F</kbd> |
 | Zoom in / out / fit | <kbd>⌘</kbd><kbd>+</kbd> / <kbd>⌘</kbd><kbd>−</kbd> / <kbd>⌘</kbd><kbd>0</kbd> |

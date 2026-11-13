@@ -90,6 +90,11 @@ for Readside. Bind any command there if you want a global hotkey:
 | Zoom in / out / to fit width | `zoom-in`, `zoom-out`, `zoom-fit` | ⌘+ / ⌘− / ⌘0 |
 | Next / previous page | `next-page`, `prev-page` | PageDown, ⌥→ / PageUp, ⌥← |
 
+Inside a thought's editor: ⌘E opens the thought in the writing sheet (⤢ beside the thought, or "Open in
+Writing Sheet" in its ⋯ menu, does the same), ⌘B and ⌘I bold and italicise, ⌘↵ finishes, and Esc leaves.
+`[[` suggests vault notes and `#` the vault's tags. Deleting a thought shows "Thought deleted · Undo"
+for a few seconds (⌘Z on the page also undoes it).
+
 The reader's keys are registered on the view's own key scope, so they work whenever the Readside tab is
 active, wherever focus is inside it. The ⌘ chords exist on macOS only; on Windows and Linux use the
 commands above and bind them yourself. Page keys (PageUp/PageDown, ⌥←/⌥→) work on every platform when
