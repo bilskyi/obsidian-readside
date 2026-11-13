@@ -1,4 +1,40 @@
 /* Reader toolbar (M4 spec §5.1, §6). App.css tokens only, so light and dark follow the system. */
+
+/* ---------- A quiet bar: icons with tooltips, no dividers; the progress hairline is its lower edge ---------- */
+.reader-bar.reader-bar {
+  border-bottom-color: transparent;
+  background: var(--window);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+/* Labels and key hints live in the tooltips and accessible names; zoom steps are ⌘+ / ⌘− and the pinch. */
+.reader-bar .tool-label,
+.reader-bar .zoom-step,
+.reader-bar .back-btn.is-icon .back-label { display: none; }
+.reader-bar button.tool-btn.tool-btn {
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  color: var(--text-2);
+  border-radius: 6px;
+}
+.reader-bar button.tool-btn.tool-btn:hover,
+.reader-bar button.tool-btn.tool-btn[aria-pressed='true'] { color: var(--text); }
+.reader-bar button.tool-btn.thought-btn { color: var(--ink); }
+.reader-bar .page-number,
+.reader-bar .zoom-value { color: var(--text-2); }
+
+/* ---------- Faded while reading (useBarFade): back on hover or focus; the progress line stays ---------- */
+.reader-bar > :not(.reading-progress) { transition: opacity 200ms var(--ease-out); }
+.reader-bar.is-faded:not(:hover):not(:focus-within) > :not(.reading-progress) {
+  opacity: 0;
+  /* A tap where an invisible button sits shows the bar first (the bar takes the hover) instead of pressing it. */
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reader-bar > :not(.reading-progress) { transition: none; }
+}
 .bar-start { justify-self: start; display: flex; align-items: center; gap: 4px; min-width: 0; }
 .reader-tools { justify-self: end; display: flex; align-items: center; gap: 2px; }
 
@@ -21,9 +57,7 @@
 .page-nav {
   display: flex;
   align-items: center;
-  margin-left: 4px;
-  padding-left: 6px;
-  border-left: 1px solid var(--separator);
+  margin-left: 2px;
 }
 .page-number {
   display: inline-flex;
@@ -58,9 +92,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  margin-right: 6px;
-  padding-right: 6px;
-  border-right: 1px solid var(--separator);
+  margin-right: 2px;
 }
 .zoom-value { min-width: 52px; padding: 3px 6px; font-variant-numeric: tabular-nums; text-align: center; }
 .zoom-value:hover,
@@ -137,9 +169,6 @@
    so 1084px / 744px here are the old 1100px / 760px window breakpoints exactly. */
 .reader-bar { container: margin-reader-bar / inline-size; }
 .bar-spacer { min-width: 0; }
-@container margin-reader-bar (max-width: 1084px) {
-  .tool-label { display: none; }
-}
 @container margin-reader-bar (max-width: 744px) {
   .page-of,
   .reader-title { display: none; }
@@ -151,6 +180,9 @@
   .zoom-step,
   .focus-btn { display: none; }
   .page-nav { margin-left: 0; padding-left: 2px; }
+  .reader-bar button.tool-btn.tool-btn { width: 26px; }
+  .reader-bar .zoom-value { min-width: 0; padding: 3px 4px; }
+  .reader-bar .page-number { padding: 3px 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

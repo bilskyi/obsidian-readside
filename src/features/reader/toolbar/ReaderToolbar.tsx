@@ -40,6 +40,8 @@ export interface ReaderToolbarProps {
   unit?: 'page' | 'section';
   /** The fraction read (0–1) when the book says so itself (EPUB); otherwise page / pageCount. */
   progress?: number;
+  /** Faded while reading (useBarFade): only the progress line shows until hover, focus, a scroll up or a tap. */
+  faded?: boolean;
 }
 
 export interface BackButton {
@@ -54,10 +56,16 @@ export function ReaderToolbar(p: ReaderToolbarProps) {
   const open = p.pageCount > 0 && p.page !== null;
   const fraction = open ? Math.min(1, Math.max(0, p.progress ?? p.page! / p.pageCount)) : 0;
   return (
-    <header className="reader-bar">
+    <header className={p.faded ? 'reader-bar is-faded' : 'reader-bar'}>
       <div className="bar-start">
         {p.onBack && (
-          <button type="button" className="back-btn" aria-label={p.backButton?.label ?? 'Library'} title={p.backButton?.title} onClick={p.onBack}>
+          <button
+            type="button"
+            className={p.backButton?.icon === 'library' ? 'back-btn tool-btn is-icon' : 'back-btn'}
+            aria-label={p.backButton?.label ?? 'Library'}
+            title={p.backButton?.title ?? p.backButton?.label}
+            onClick={p.onBack}
+          >
             {p.backButton?.icon === 'library' ? (
               <LibraryIcon />
             ) : (
