@@ -34,16 +34,16 @@ export interface RemovedDraft {
 /** How long the undo toast stays. */
 export const UNDO_MS = 6000;
 
-/** The thought whose note or notebook entry has focus now (its editor, label, menu or preview), if any. */
+/** The thought whose note, notebook entry or writing sheet has focus now (its editor, label, menu or preview), if any. */
 function focusedThought(): string | null {
   const active = document.activeElement;
   if (!(active instanceof Element)) return null;
-  return active.closest<HTMLElement>('.margin-note, .nb-thought')?.dataset.thoughtId ?? null;
+  return active.closest<HTMLElement>('.margin-note, .nb-thought, .writing-sheet')?.dataset.thoughtId ?? null;
 }
 
 /** The thought (margin note, card or notebook entry) a pressed element belongs to, if any. */
 function thoughtAt(el: Element | null): string | null {
-  return el?.closest<HTMLElement>('.margin-note[data-thought-id], .nb-thought[data-thought-id]')?.dataset.thoughtId ?? null;
+  return el?.closest<HTMLElement>('.margin-note[data-thought-id], .nb-thought[data-thought-id], .writing-sheet[data-thought-id]')?.dataset.thoughtId ?? null;
 }
 
 /** The last press: what it hit, and the highlight under the pointer then (the renderer marks it `.hl.is-hover`). */

@@ -155,6 +155,30 @@ describe('the writing sheet in the reader', () => {
     await waitFor(() => expect(notebook.querySelector('.cm-content')).toBeTruthy());
   });
 
+  it('deleting a thought asks nothing and offers Undo, which brings the text back', async () => {
+    const view = await openWalden();
+    const bookId = (view as unknown as { book: { id: string } }).book.id;
+    const confirm = vi.spyOn(backend(), 'confirm');
+    fireEvent.click(screen.getByRole('button', { name: 'New Thought' }));
+    if (!screen.queryByRole('complementary', { name: 'Notebook' })) fireEvent.click(screen.getByRole('button', { name: 'Notebook' }));
+    const notebook = await screen.findByRole('complementary', { name: 'Notebook' });
+    fireEvent.click(await within(notebook).findByRole('button', { name: /in the writing sheet/ }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Link a note' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await waitFor(async () => expect((await backend().listThoughts(bookId))[0]?.body).toBe('[[]]'), { timeout: 2000 });
+
+    fireEvent.click(within(notebook).getByRole('button', { name: /^Actions for thought/ }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Delete Thought' }));
+    await waitFor(async () => expect(await backend().listThoughts(bookId)).toHaveLength(0));
+    expect(confirm).not.toHaveBeenCalled();
+    const toast = () => [...document.querySelectorAll('.toast-undo')].find((t) => t.textContent?.startsWith('Thought deleted'));
+    await waitFor(() => expect(toast()).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /^Undo/ }));
+    await waitFor(async () => expect((await backend().listThoughts(bookId)).map((t) => t.body)).toEqual(['[[]]']));
+    await waitFor(() => expect(toast()).toBeUndefined());
+  });
+
   it('Escape closes the sheet, and so does a click outside it', async () => {
     await openWalden();
     fireEvent.click(screen.getByRole('button', { name: 'New Thought' }));

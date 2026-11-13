@@ -43,6 +43,7 @@ import { SearchBar } from './search/SearchBar';
 import { useAutoLabels } from './useAutoLabels';
 import { applyHighlight } from './highlightRules';
 import { useFreshIds } from './useFreshIds';
+import { useUndoToast } from './useUndoToast';
 import { isPresent, toPaintable, useAnnotations } from './useAnnotations';
 import { ReaderToolbar, type BackButton } from './toolbar/ReaderToolbar';
 import { retireHint } from '../marginalia/MarginHint';
@@ -906,11 +907,12 @@ export function ReaderView({
   const undoKey = useRef<(e: KeyboardEvent) => void>(() => {});
   useLayoutEffect(() => {
     undoKey.current = (e) => {
-      if (!removedDraft || e.defaultPrevented || e.repeat || e.isComposing) return;
+      if ((!removedDraft && !deleted.value) || e.defaultPrevented || e.repeat || e.isComposing) return;
       if (!e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || shortcutKey(e).toLowerCase() !== 'z') return;
       if (isEditable(e.target)) return;
       e.preventDefault();
-      restoreDraft(removedDraft);
+      if (deleted.value) restoreThought(deleted.value);
+      else if (removedDraft) restoreDraft(removedDraft);
     };
   });
   useEffect(() => {
@@ -1256,13 +1258,26 @@ export function ReaderView({
   };
   /** A custom name replaces the automatic label; null (a cleared name) brings the automatic one back. */
   const renameThought = (id: string, label: string | null) => attempt(() => updateThought(id, { labelCustom: label }));
+  /** A deleted thought, offered back by the "Thought deleted · Undo" toast (no confirmation first). */
+  const deleted = useUndoToast<Thought>();
   const deleteThought = (t: Thought) =>
     attempt(async () => {
-      if (t.body.trim() && !(await backend().confirm('Delete this thought? This can’t be undone.', { title: 'Delete Thought', kind: 'warning' }))) {
-        return;
-      }
       await removeThought(t.id);
+      if (t.body.trim()) deleted.show(t);
     });
+  /** Undo for "Thought deleted": the same text, name and place, in its old place in the notebook's order. */
+  const restoreThought = (t: Thought) => {
+    const started = run(async () => {
+      const anchorAlive = !!t.anchorId && items.some((a) => a.id === t.anchorId);
+      // Its highlight went meanwhile: it comes back at the highlight's place, as a pin would be.
+      const anchor = t.anchorId ? items.find((a) => a.id === t.anchorId) : undefined;
+      const location = anchorAlive ? null : parseLocation(t.location) ?? (anchor ? parseLocation(anchor.location) : null);
+      const back = await createThought({ body: t.body, anchorId: anchorAlive ? t.anchorId : null, location });
+      const patch = { position: t.position, ...(t.labelCustom ? { labelCustom: t.labelCustom } : {}) };
+      await updateThought(back.id, patch).catch((e) => setProblem(String(e)));
+    });
+    if (started) deleted.dismiss();
+  };
   const deleteAnnotation = (a: Annotation) => {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -1536,6 +1551,29 @@ export function ReaderView({
                 className="toast-undo-btn"
                 aria-keyshortcuts="Meta+Z"
                 onClick={() => restoreDraft(removedDraft)}
+              >
+                Undo
+                <span className="key-hint" aria-hidden="true">
+                  (⌘Z)
+                </span>
+              </button>
+            </p>
+          )}
+          {deleted.value && (
+            <p
+              className="toast info toast-undo"
+              onMouseEnter={() => deleted.hold('hover', true)}
+              onMouseLeave={() => deleted.hold('hover', false)}
+              onFocus={() => deleted.hold('focus', true)}
+              onBlur={() => deleted.hold('focus', false)}
+            >
+              Thought deleted
+              <span aria-hidden="true">·</span>
+              <button
+                type="button"
+                className="toast-undo-btn"
+                aria-keyshortcuts="Meta+Z"
+                onClick={() => deleted.value && restoreThought(deleted.value)}
               >
                 Undo
                 <span className="key-hint" aria-hidden="true">

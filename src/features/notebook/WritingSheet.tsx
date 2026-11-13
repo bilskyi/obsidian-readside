@@ -99,6 +99,7 @@ export function WritingSheet({ thought, thoughts, annotations, onSave, onSwitch,
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        data-thought-id={id}
         onKeyDown={onKeyDown}
       >
         <header className="sheet-head">
