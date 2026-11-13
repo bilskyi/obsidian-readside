@@ -24,6 +24,7 @@
 - 🔗 **Your notes stay in your vault.** Each book's notebook is also written as a Markdown note, with every quote linking back to its exact place in the book.
 - ↩️ **Backlinks in the margin.** Notes that link into a book show up right where they point. Type `[[` in a thought to link any note.
 - 📚 **A shelf** of your books with covers, reading progress and your recent thoughts, plus search across every highlight.
+- 🗂️ **A notes hub** on the shelf: an Inbox of highlights you haven't written about yet, a few older ones to reread each day, your `[[links]]` and `#tags` as topics across books, and related entries beside each one. Write thoughts right there.
 - 🔎 **Search, contents, zoom and focus mode**, with keyboard shortcuts for all of them.
 - 🌍 **Offline translation.** Select text and press **L**, or hold **⌥** over a word. It runs on your computer with Firefox's translation models.
 - 🔒 **Private by design.** No accounts, no telemetry. The only network requests are translation downloads you confirm.

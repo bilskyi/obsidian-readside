@@ -13,6 +13,8 @@ export interface MarginSettings {
   translateTarget: string;
   /** ⌥-hover translates the word under the pointer (Settings → Translation). */
   translateHover: boolean;
+  /** Highlights the notes hub's Inbox no longer offers ("Done, nothing to add"), by highlight id. */
+  hubInboxDone: string[];
 }
 
 const systemLanguage = (): string | undefined => (typeof navigator === 'undefined' ? undefined : navigator.language);
@@ -23,6 +25,7 @@ export const DEFAULT_SETTINGS: MarginSettings = {
   openPdfsInMargin: false,
   translateTarget: pickDefaultTarget(systemLanguage()),
   translateHover: true,
+  hubInboxDone: [],
 };
 
 const TARGETS = new Set(LANGUAGES.map((l) => l.code));

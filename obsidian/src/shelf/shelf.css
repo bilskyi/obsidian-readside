@@ -321,8 +321,145 @@
   overflow: hidden;
 }
 
-/* ---------- Highlights & thoughts ---------- */
-.shelf-notes { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+/* ---------- Highlights & thoughts: the notes hub (ShelfHub.tsx) ---------- */
+/* Sections | list | the chosen entry. The nav and the entry stay in view while the list scrolls. */
+/* The frame is measured (a container cannot restyle itself); the grid inside it changes. */
+.hub-frame { container: shelf-hub / inline-size; }
+.shelf-hub {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 28px;
+  align-items: start;
+}
+.hub-nav,
+.hub-detail { position: sticky; top: 0; max-height: calc(100vh - 160px); overflow-y: auto; }
+.hub-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.hub-nav h3 {
+  margin: 18px 8px 6px;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.hub-nav button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  text-align: left;
+  color: var(--text);
+}
+.hub-nav button:hover { background: var(--hover); }
+.hub-nav button[aria-current='true'] { background: var(--pressed); font-weight: 600; }
+.hub-nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.hub-nav-count { color: var(--text-2); font-variant-numeric: tabular-nums; font-weight: 400; }
+
+.hub-list { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.hub-list-head h2 { margin: 0 0 2px; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.hub-list-head p { margin: 0; }
+.hub-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.hub-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  padding: 10px 12px 10px 14px;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: inset 3px 0 0 var(--bar);
+}
+.hub-item:hover { background: var(--hover); }
+.hub-item[aria-current='true'] { background: var(--pressed); }
+.hub-item-quote {
+  font-family: 'Iowan Old Style', 'Charter', Georgia, serif;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hub-item-text {
+  line-height: 1.45;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hub-item-text.is-own { color: var(--text); }
+
+.hub-detail-empty { margin: 40px 0 0; text-align: center; }
+.hub-entry { display: flex; flex-direction: column; gap: 14px; padding-bottom: 24px; }
+.hub-entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.hub-spacer { flex: 1; }
+.hub-back { display: none; }
+.hub-quote {
+  margin: 0;
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--bar);
+  font-family: 'Iowan Old Style', 'Charter', Georgia, serif;
+  font-size: 19px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.hub-note { margin: 0; line-height: 1.5; }
+.hub-thoughts { display: flex; flex-direction: column; gap: 8px; }
+.hub-thought { padding: 8px 10px; border-radius: 8px; background: var(--surface); }
+.hub-thought p { margin: 0; line-height: 1.5; }
+.hub-thought .thought-editor { font-size: 14px; }
+.hub-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.hub-suggest {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink) 10%, var(--window));
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+}
+.hub-topics { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.hub-topics button { padding: 2px 10px; border-radius: 99px; background: var(--surface); color: var(--text); }
+.hub-topics button:hover { background: var(--hover); }
+.hub-related h3 {
+  margin: 6px 0 6px;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.hub-related ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.hub-related button { display: flex; flex-direction: column; gap: 3px; width: 100%; padding: 7px 8px; border-radius: 6px; text-align: left; color: var(--text); }
+.hub-related button:hover { background: var(--hover); }
+
+/* Medium: the entry takes the list's place while it is open (Back to list returns). */
+@container shelf-hub (max-width: 980px) {
+  .shelf-hub { grid-template-columns: 170px minmax(0, 1fr); }
+  .shelf-hub.has-detail .hub-list { display: none; }
+  .shelf-hub:not(.has-detail) .hub-detail { display: none; }
+  .hub-back { display: inline-flex; }
+}
+/* Narrow (a phone): one column; the sections become a row that scrolls sideways. */
+@container shelf-hub (max-width: 620px) {
+  .shelf-hub { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .hub-nav { position: static; max-height: none; overflow-x: auto; scrollbar-width: none; }
+  .hub-nav ul { flex-direction: row; }
+  .hub-nav h3 { display: none; }
+  .hub-nav { display: flex; gap: 2px; }
+  .hub-nav button { white-space: nowrap; }
+  .hub-detail { position: static; max-height: none; }
+}
 .shelf-notes-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .shelf-segmented {
   display: inline-flex;
@@ -360,40 +497,7 @@
   font: inherit;
   max-width: 220px;
 }
-.shelf-notes-count { font-size: var(--fs-meta); font-variant-numeric: tabular-nums; }
-.shelf-notes-group { display: flex; flex-direction: column; gap: 6px; }
-.shelf-notes-group + .shelf-notes-group { margin-top: 12px; }
-.shelf-notes-book { margin: 0; font-size: 14px; font-weight: 600; color: var(--text); }
-.shelf-notes-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.shelf-note {
-  display: grid;
-  grid-template-columns: 4px minmax(0, 1fr);
-  gap: 14px;
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 8px;
-  text-align: left;
-  cursor: pointer;
-  color: var(--text);
-}
-.shelf-note:hover { background: var(--hover); }
-.shelf-note-bar { border-radius: 2px; background: var(--bar); }
-.shelf-note-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.shelf-note-quote {
-  font-family: 'Iowan Old Style', 'Charter', Georgia, serif;
-  font-size: 16px;
-  line-height: 1.55;
-  overflow-wrap: anywhere;
-}
-.shelf-note-note { line-height: 1.5; overflow-wrap: anywhere; }
 .shelf-note-label { font-size: var(--fs-meta); font-weight: 600; color: var(--text-2); }
-.shelf-note-thought {
-  padding-left: 10px;
-  border-left: 2px solid var(--separator);
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.shelf-note-thought.is-own { padding-left: 0; border-left: 0; }
 .shelf-notes-more { align-self: flex-start; }
 
 @media (max-width: 720px) {

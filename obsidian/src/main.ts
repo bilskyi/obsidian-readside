@@ -20,7 +20,7 @@ import '../../src/App.css';
 import { displayTitle } from '../../src/lib/titles';
 import * as bodySaves from '../../src/features/notebook/bodySaves';
 import { flushAll, flushAllBounded } from '../../src/features/notebook/editorRegistry';
-import { setBackend } from '../../src/lib/backend';
+import { backend, setBackend } from '../../src/lib/backend';
 import { setAppName } from '../../src/lib/appName';
 import { pdfLocation, serializeLocation } from '../../src/lib/location';
 import type { Location } from '../../src/lib/types';
@@ -333,6 +333,30 @@ export default class MarginPlugin extends Plugin {
       },
       cover: (entry) => this.covers.view(entry),
       requestCover: (bookId) => this.covers.request(bookId),
+      // The notes hub writes through the same backend as the reader; a reader open on that book reloads.
+      hub: {
+        writes: {
+          saveThought: async (bookId, id, body) => {
+            await backend().updateThought(id, { body });
+            this.thoughtsEditedElsewhere(bookId);
+          },
+          createThought: async (bookId, anchorId, body) => {
+            const t = await backend().createThought({ bookId, anchorId, body });
+            this.thoughtsEditedElsewhere(bookId);
+            return t.id;
+          },
+          markDone: (id, done) => {
+            const set = new Set(Array.isArray(this.settings.hubInboxDone) ? this.settings.hubInboxDone : []);
+            if (done) set.add(id);
+            else set.delete(id);
+            this.settings.hubInboxDone = [...set];
+            void this.saveSettings().catch((e) => console.warn('readside: could not save the Inbox', e));
+          },
+        },
+        inboxDone: () => (Array.isArray(this.settings.hubInboxDone) ? this.settings.hubInboxDone : []),
+      },
+      linkSuggest: (query, session, kind) =>
+        kind === 'tag' ? suggestTags(this.app, query, undefined, session) : suggestNotes(this.app, query, undefined, session),
       coverMenu: (bookId, title, at, opener) => {
         showCoverMenu(this.app, this.covers, this.store.entryOf(bookId)?.cover ?? null, { bookId, title }, at, opener);
       },
@@ -712,6 +736,11 @@ export default class MarginPlugin extends Plugin {
       if (vs.type === VIEW_TYPE && vs.state?.file === path) found = leaf;
     });
     return found;
+  }
+
+  /** The notes hub changed a book's thoughts: a reader open on it shows them. */
+  thoughtsEditedElsewhere(bookId: string): void {
+    for (const v of this.marginViews()) if (v.bookId === bookId) v.externalEdit();
   }
 
   marginViews(): MarginView[] {

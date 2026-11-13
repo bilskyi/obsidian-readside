@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { EditorView } from '@codemirror/view';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/renderers/pdf/PdfRenderer', async () => ({ PdfRenderer: (await import('./fakeRenderer')).FakePdfRenderer }));
@@ -256,7 +257,8 @@ describe('recent thoughts and a highlight from a while ago', () => {
   });
 });
 
-describe('highlights & thoughts on the shelf', () => {
+describe('the notes hub on the shelf', () => {
+  const T0 = '2026-01-01T10:00:00.000Z';
   const T = '2026-03-01T10:00:00.000Z';
   const later = '2026-03-02T10:00:00.000Z';
   const books = [
@@ -264,48 +266,99 @@ describe('highlights & thoughts on the shelf', () => {
       annotations: [
         { id: 'h1', bookId: 'b1', location: pdfLoc(3), quote: 'The mass of men', color: 'green', note: 'Thoreau at his bleakest', unanchored: false, createdAt: T, updatedAt: T },
         { id: 'h2', bookId: 'b1', location: pdfLoc(7), quote: 'Simplify, simplify', color: 'pink', note: null, unanchored: false, createdAt: T, updatedAt: T },
+        { id: 'h3', bookId: 'b1', location: pdfLoc(9), quote: 'A life of simplicity and of leisure', color: 'yellow', note: null, unanchored: false, createdAt: T0, updatedAt: T0 },
       ],
       thoughts: [
-        { id: 't1', bookId: 'b1', body: 'Still true', anchorId: 'h2', location: null, position: 1, createdAt: later, updatedAt: later, labelSection: null, labelSnippet: null, labelCustom: null },
+        { id: 't1', bookId: 'b1', body: 'Still true. [[Simplicity]]', anchorId: 'h2', location: null, position: 1, createdAt: later, updatedAt: later, labelSection: null, labelSnippet: null, labelCustom: null },
       ],
     }),
   ];
-  const index = { 'Books/A.pdf': { bookId: 'b1', fingerprint: '1:a', missing: false, summary: summary({ title: 'Book A', annotationCount: 2, thoughtCount: 1, updatedAt: later }) } };
+  const index = { 'Books/A.pdf': { bookId: 'b1', fingerprint: '1:a', missing: false, summary: summary({ title: 'Book A', annotationCount: 3, thoughtCount: 1, updatedAt: later }) } };
 
-  it('lists every highlight with its note and thoughts, filters them, and opens the book at the spot', async () => {
+  async function openHub() {
     const p = await setup({ books, index });
-    const open = vi.spyOn(p, 'openInMargin').mockResolvedValue();
     await p.openShelf();
     fireEvent.click(await screen.findByRole('button', { name: 'Highlights & thoughts' }));
-    const list = await screen.findByRole('region', { name: 'Highlights and thoughts' });
-    await within(list).findByText('Simplify, simplify');
+    const hub = await screen.findByRole('region', { name: 'Highlights and thoughts' });
+    await within(hub).findByText('Simplify, simplify');
+    const items = () => [...hub.querySelectorAll('.hub-items > li')].map((li) => li.textContent ?? '');
+    const nav = within(hub).getByRole('navigation', { name: 'Sections' });
+    return { p, hub, items, nav };
+  }
+
+  it('Everything lists each highlight with its note or thought, filters them, and opens an entry beside the list', async () => {
+    const { p, hub, items } = await openHub();
+    const open = vi.spyOn(p, 'openInMargin').mockResolvedValue();
     // Newest first: the highlight with the newer thought leads, the thought shown under it.
-    const entries = () => within(list).queryAllByRole('listitem').map((li) => li.textContent);
-    expect(entries()[0]).toContain('Simplify, simplify');
-    expect(entries()[0]).toContain('Still true');
-    expect(entries()[1]).toContain('Thoreau at his bleakest');
+    expect(items()[0]).toContain('Simplify, simplify');
+    expect(items()[0]).toContain('Still true');
+    expect(items()).toHaveLength(3);
+    fireEvent.click(within(hub).getByRole('button', { name: 'Notes' }));
+    expect(items()).toHaveLength(1);
+    fireEvent.click(within(hub).getByRole('button', { name: 'All' }));
+    fireEvent.click(within(hub).getByRole('button', { name: 'Show pink' }));
+    expect(items()).toHaveLength(1);
 
-    fireEvent.click(within(list).getByRole('button', { name: 'Notes' }));
-    expect(entries()).toHaveLength(1);
-    fireEvent.click(within(list).getByRole('button', { name: 'All' }));
-    fireEvent.click(within(list).getByRole('button', { name: 'Show pink' }));
-    expect(entries()).toHaveLength(1);
-    expect(entries()[0]).toContain('Simplify, simplify');
-
-    fireEvent.click(within(list).getByText('Simplify, simplify'));
+    fireEvent.click(within(hub).getByText('Simplify, simplify'));
+    const entry = await within(hub).findByRole('article');
+    expect(entry.querySelector('.hub-quote')?.textContent).toBe('Simplify, simplify');
+    // Its thought is editable here.
+    await waitFor(() => expect(entry.querySelector('.cm-content')?.textContent).toBe('Still true. [[Simplicity]]'));
+    fireEvent.click(within(entry).getByRole('button', { name: 'Open in book' }));
     expect(open).toHaveBeenLastCalledWith(app.vault.getFileByPath('Books/A.pdf'), parseLocation(pdfLoc(7)), false);
   });
 
-  it('a recent thought shows its highlight, and See all opens the list at the thoughts', async () => {
+  it('Inbox holds highlights with nothing written; Done takes one out and is remembered', async () => {
+    const { p, hub, items, nav } = await openHub();
+    fireEvent.click(within(nav).getByRole('button', { name: /^Inbox/ }));
+    expect(items()).toHaveLength(1);
+    expect(items()[0]).toContain('A life of simplicity');
+    fireEvent.click(within(hub).getByText('A life of simplicity and of leisure'));
+    fireEvent.click(await within(hub).findByRole('button', { name: 'Done, nothing to add' }));
+    await waitFor(() => expect(items()).toHaveLength(0));
+    expect(p.settings.hubInboxDone).toEqual(['h3']);
+  });
+
+  it('topics come from [[links]]; a highlight naming a topic gets a one-click link, written as a thought', async () => {
+    const { hub, items, nav } = await openHub();
+    fireEvent.click(within(nav).getByRole('button', { name: /^\[\[Simplicity\]\]/ }));
+    expect(items()).toHaveLength(1);
+    expect(items()[0]).toContain('Simplify, simplify');
+
+    fireEvent.click(within(nav).getByRole('button', { name: /^Everything/ }));
+    fireEvent.click(within(hub).getByText('A life of simplicity and of leisure'));
+    const entry = await within(hub).findByRole('article');
+    fireEvent.click(within(entry).getByRole('button', { name: 'Add [[Simplicity]]' }));
+    await waitFor(async () => {
+      const ts = await backend().listThoughts('b1');
+      expect(ts.find((t) => t.anchorId === 'h3')?.body).toBe('[[Simplicity]]');
+    });
+  });
+
+  it('a thought written in the hub is saved to the book once it has text, and shows as that entry’s thought', async () => {
+    const { hub } = await openHub();
+    fireEvent.click(within(hub).getByText('A life of simplicity and of leisure'));
+    const entry = await within(hub).findByRole('article');
+    fireEvent.click(within(entry).getByRole('button', { name: 'Write a thought' }));
+    await waitFor(() => expect(entry.querySelector('.cm-content')).toBeTruthy());
+    const view = EditorView.findFromDOM(entry.querySelector('.cm-editor') as HTMLElement)!;
+    const bodies = async () => (await backend().listThoughts('b1')).filter((t) => t.anchorId === 'h3').map((t) => t.body);
+    act(() => view.dispatch({ changes: { from: 0, insert: 'Leisure first' } }));
+    await waitFor(async () => expect(await bodies()).toEqual(['Leisure first']), { timeout: 2000 });
+    act(() => view.dispatch({ changes: { from: view.state.doc.length, insert: ', then work' } }));
+    await waitFor(async () => expect(await bodies()).toEqual(['Leisure first, then work']), { timeout: 2000 });
+  });
+
+  it('a recent thought shows its highlight, and See all opens the hub at the thoughts', async () => {
     const p = await setup({ books, index });
     await p.openShelf();
     const recent = await screen.findByRole('region', { name: 'Recent thoughts' });
     await within(recent).findByText('“Simplify, simplify”');
     fireEvent.click(within(recent).getByRole('button', { name: 'See all' }));
-    const list = await screen.findByRole('region', { name: 'Highlights and thoughts' });
-    expect(within(list).getByRole('button', { name: 'Thoughts' }).getAttribute('aria-pressed')).toBe('true');
-    await within(list).findByText('Still true');
-    expect(within(list).getAllByRole('listitem')).toHaveLength(1);
+    const hub = await screen.findByRole('region', { name: 'Highlights and thoughts' });
+    expect(within(hub).getByRole('button', { name: 'Thoughts' }).getAttribute('aria-pressed')).toBe('true');
+    await within(hub).findByText('Simplify, simplify');
+    expect(hub.querySelectorAll('.hub-items > li')).toHaveLength(1);
   });
 });
 

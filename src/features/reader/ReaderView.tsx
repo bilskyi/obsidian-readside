@@ -122,6 +122,8 @@ export type ReaderCommandRunner = (cmd: ReaderCommand, checking?: boolean, event
 
 export interface ReaderViewProps {
   book: Book;
+  /** Bumped when this book's thoughts were written elsewhere (the shelf's notes hub): they are read again. */
+  externalEdits?: number;
   /** Shows "‹ Library" when given (desktop); Obsidian's goes to its shelf. */
   onBack?: () => void;
   /** The back button's label, tooltip and icon (Obsidian: "Shelf"); default "‹ Library". */
@@ -173,6 +175,7 @@ export interface ReaderViewProps {
 }
 
 export function ReaderView({
+  externalEdits = 0,
   book,
   onBack,
   backButton,
@@ -213,6 +216,13 @@ export function ReaderView({
     reload: reloadThoughts,
     setAutoLabels: setThoughtAutoLabels,
   } = useThoughts(book.id);
+  // The notes hub wrote this book's thoughts: read them again (an editor with unsaved text keeps its own).
+  const seenEdits = useRef(externalEdits);
+  useEffect(() => {
+    if (externalEdits === seenEdits.current) return;
+    seenEdits.current = externalEdits;
+    reloadThoughts();
+  }, [externalEdits, reloadThoughts]);
   // The first thought ever made retires the first-run hint for good (on this device), whichever way it was made.
   const createThought = useCallback(
     async (input: Parameters<typeof createThoughtRaw>[0]) => {

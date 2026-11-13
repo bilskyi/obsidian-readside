@@ -182,6 +182,8 @@ export class MarginView extends FileView implements HoverParent {
   private root: Root | null = null;
   private rootEl: HTMLDivElement | null = null;
   private book: Book | null = null;
+  /** Bumped when the notes hub writes this book's thoughts: the reader reloads them. */
+  private externalEdits = 0;
   private error: string | null = null;
   /** The page-level location on screen, kept by ReaderView while mounted ("Copy link to this page"). */
   readonly location: { current: Location | null } = { current: null };
@@ -562,6 +564,17 @@ export class MarginView extends FileView implements HoverParent {
     this.render();
   }
 
+  /** The book this view shows, once open. */
+  get bookId(): string | null {
+    return this.book?.id ?? null;
+  }
+
+  /** Its thoughts were written elsewhere (the notes hub): the reader reads them again. */
+  externalEdit(): void {
+    this.externalEdits++;
+    this.render();
+  }
+
   private render(): void {
     if (!this.root) return;
     // The status region first, always: React keeps it mounted whatever follows it.
@@ -626,6 +639,7 @@ export class MarginView extends FileView implements HoverParent {
           onPageMenu={showPageMenu}
           onCopyQuote={file ? (location, quote) => copyQuoteWithLink(file, location, quote) : undefined}
           translate={this.host.translate?.() ?? undefined}
+          externalEdits={this.externalEdits}
         />
       </StrictMode>
     );

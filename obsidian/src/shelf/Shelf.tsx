@@ -31,7 +31,9 @@ import {
   type SearchGroup,
   type ShelfBook,
 } from './shelfData';
-import { ShelfNotes } from './ShelfNotes';
+import { ShelfHub, type HubWrites } from './ShelfHub';
+import type { HubSection } from './hubData';
+import type { LinkSuggestSource } from '../../../src/features/notebook/linkSuggest';
 import './shelf.css';
 
 /** What the shelf reads from the plugin. */
@@ -49,6 +51,10 @@ export interface ShelfSource extends BookSource {
   requestCover?(bookId: string): void;
   /** Opens the card's cover menu, at the pointer (right-click) or at a point (under the "⋯" button). */
   coverMenu?(bookId: string, title: string, at: globalThis.MouseEvent | { x: number; y: number }, opener?: HTMLElement): void;
+  /** The notes hub's writes (absent: it only reads), and the Inbox entries marked done so far. */
+  hub?: { writes: HubWrites; inboxDone(): string[] };
+  /** `[[` and `#` suggestions for the hub's thought editors. */
+  linkSuggest?: LinkSuggestSource;
 }
 
 /** Whether the shelf is on screen: a hidden shelf postpones its refreshes until it is shown. */
@@ -251,7 +257,8 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
     const stop = () => !current || !alive.current;
     const store = loaded.current;
     const order = searchOrder(books);
-    setNotesRead(null);
+    // A list already showing stays while its books are read again (a save in the hub re-reads its book).
+    setNotesRead((r) => (r ? { ...r, done: false } : null));
     void (async () => {
       if (order.length === 0) return setNotesRead({ tick: 0, done: true });
       for (let i = 0; i < order.length; i += SEARCH_CHUNK) {
@@ -265,13 +272,37 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
     };
   }, [showNotes, books, source, version]);
   const notes = useMemo(
-    () => (notesRead === null ? null : shelfNotes(books, loaded.current, noteFilter)),
+    () => (notesRead === null ? null : shelfNotes(books, loaded.current, { ...noteFilter, bookId: null })),
     // `notesRead` stands for what has been read into loaded.current.
     [notesRead, books, noteFilter],
   );
-  const booksWithNotes = useMemo(() => books.filter((b) => !b.missing && (b.annotationCount ?? 1) + (b.thoughtCount ?? 0) > 0), [books]);
+  const everything = useMemo(
+    () => (notesRead === null ? null : shelfNotes(books, loaded.current, ALL_NOTES)),
+    [notesRead, books],
+  );
+  const [hubSection, setHubSection] = useState<HubSection>({ kind: 'all' });
+  const [hubSelected, setHubSelected] = useState<string | null>(null);
+  const [inboxDone, setInboxDone] = useState<ReadonlySet<string>>(() => new Set(source.hub?.inboxDone() ?? []));
+  const hubWrites = useMemo<HubWrites | null>(() => {
+    const w = source.hub?.writes;
+    if (!w) return null;
+    return {
+      saveThought: (bookId, id, body) => w.saveThought(bookId, id, body),
+      createThought: (bookId, anchorId, body) => w.createThought(bookId, anchorId, body),
+      markDone: (id, done) => {
+        w.markDone(id, done);
+        setInboxDone((s) => {
+          const next = new Set(s);
+          if (done) next.add(id);
+          else next.delete(id);
+          return next;
+        });
+      },
+    };
+  }, [source]);
   const seeAllThoughts = () => {
     setNoteFilter({ ...ALL_NOTES, kind: 'thoughts' });
+    setHubSection({ kind: 'all' });
     setView('notes');
   };
 
@@ -433,12 +464,23 @@ export function Shelf({ source, ready, onOpen, onPick, visibility = ALWAYS_VISIB
       {searching ? (
         <SearchResults results={resultsFor?.groups ?? null} onOpen={onOpen} />
       ) : showNotes ? (
-        <ShelfNotes
-          notes={notes}
+        <ShelfHub
+          everything={everything}
+          filtered={notes}
           done={notesRead?.done ?? false}
-          books={booksWithNotes}
+          books={books}
           filter={noteFilter}
           onFilter={setNoteFilter}
+          section={hubSection}
+          onSection={(s) => {
+            setHubSection(s);
+            setHubSelected(null);
+          }}
+          selectedId={hubSelected}
+          onSelect={setHubSelected}
+          inboxDone={inboxDone}
+          writes={hubWrites}
+          linkSuggest={source.linkSuggest}
           open={(book, location) => opener((openIn) => onOpen(book.path, location, openIn))}
           now={now}
         />

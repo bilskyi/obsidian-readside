@@ -307,8 +307,8 @@ export interface ShelfNote {
   quote: string | null;
   color: Color | null;
   note: string | null;
-  /** Its thoughts (plain text), oldest first; a thought at a place is its own one. */
-  thoughts: { id: string; text: string }[];
+  /** Its thoughts, oldest first (`text` plain, `body` the Markdown); a thought at a place is its own one. */
+  thoughts: { id: string; text: string; body: string }[];
   location: Location | null;
   page: number | null;
   createdAt: string;
@@ -350,7 +350,7 @@ export function shelfNotes(books: readonly ShelfBook[], loaded: LoadedBooks, fil
       if (!text) continue;
       const anchor = t.anchorId ? byAnchor.get(t.anchorId) : undefined;
       if (anchor) {
-        anchor.thoughts.push({ id: t.id, text });
+        anchor.thoughts.push({ id: t.id, text, body: t.body });
         anchor.updatedAt = newer(anchor.updatedAt, t.updatedAt);
         continue;
       }
@@ -361,7 +361,7 @@ export function shelfNotes(books: readonly ShelfBook[], loaded: LoadedBooks, fil
         quote: null,
         color: null,
         note: null,
-        thoughts: [{ id: t.id, text }],
+        thoughts: [{ id: t.id, text, body: t.body }],
         location,
         page: pageOf(location),
         createdAt: t.createdAt,
